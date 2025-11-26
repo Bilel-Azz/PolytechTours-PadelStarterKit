@@ -1,30 +1,24 @@
-// ============================================
-// FICHIER : frontend/src/App.vue
-// ============================================
-
-<template>
-  <div id="app">
-    <NavBar v-if="authStore.isAuthenticated" />
-    <router-view />
-  </div>
-</template>
-
 <script setup>
-import { onMounted } from 'vue'
-import NavBar from './components/NavBar.vue'
-import { useAuthStore } from './stores/auth'
-
-const authStore = useAuthStore()
-
-onMounted(() => {
-  // Vérifier si un token existe au démarrage
-  authStore.checkAuth()
-})
+import { RouterView } from 'vue-router'
 </script>
 
-<style>
-#app {
-  min-height: 100vh;
-  background-color: #f9fafb;
-}
-</style>
+<template>
+  <div class="min-h-screen bg-gray-50 font-sans text-gray-900">
+    <header class="bg-white shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+        <div class="flex items-center">
+          <h1 class="text-xl font-bold text-indigo-600">Corpo Padel</h1>
+        </div>
+        
+        <nav class="flex space-x-4">
+          <RouterLink to="/" class="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">Home</RouterLink>
+          <RouterLink to="/about" class="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">About</RouterLink>
+        </nav>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <RouterView />
+    </main>
+  </div>
+</template>
