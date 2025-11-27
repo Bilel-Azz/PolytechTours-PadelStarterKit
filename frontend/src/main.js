@@ -17,7 +17,6 @@ app.use(pinia)
 // Initialize auth store and check for existing session
 const authStore = useAuthStore()
 authStore.checkAuth()
-console.log('[MAIN] App initialized, isAuthenticated:', authStore.isAuthenticated)
 
 app.use(router)
 

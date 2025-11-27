@@ -4,6 +4,8 @@ import { useAuthStore } from './stores/auth'
 import { Home, Calendar, Trophy, BarChart3, LogIn, LogOut, User } from 'lucide-vue-next'
 import Button from './components/ui/button.vue'
 import Avatar from './components/ui/avatar.vue'
+import Toaster from './components/ui/toaster.vue'
+import ThemeToggle from './components/ThemeToggle.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -58,25 +60,29 @@ const handleLogout = () => {
           </RouterLink>
         </nav>
 
-        <div v-if="authStore.isAuthenticated" class="flex items-center gap-4">
-          <div class="flex items-center gap-2">
-            <Avatar class="h-8 w-8">
-              <User class="h-4 w-4" />
-            </Avatar>
-            <span class="text-sm font-medium">{{ authStore.user?.email }}</span>
-          </div>
-          <Button variant="ghost" size="sm" @click="handleLogout" class="gap-2">
-            <LogOut class="h-4 w-4" />
-            Déconnexion
-          </Button>
-        </div>
-        <div v-else>
-          <RouterLink to="/login">
-            <Button variant="default" size="sm" class="gap-2">
-              <LogIn class="h-4 w-4" />
-              Connexion
+        <div class="flex items-center gap-3">
+          <ThemeToggle />
+
+          <div v-if="authStore.isAuthenticated" class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+              <Avatar class="h-8 w-8">
+                <User class="h-4 w-4" />
+              </Avatar>
+              <span class="text-sm font-medium">{{ authStore.user?.email }}</span>
+            </div>
+            <Button variant="ghost" size="sm" @click="handleLogout" class="gap-2">
+              <LogOut class="h-4 w-4" />
+              Déconnexion
             </Button>
-          </RouterLink>
+          </div>
+          <div v-else>
+            <RouterLink to="/login">
+              <Button variant="default" size="sm" class="gap-2">
+                <LogIn class="h-4 w-4" />
+                Connexion
+              </Button>
+            </RouterLink>
+          </div>
         </div>
       </div>
     </header>
@@ -84,5 +90,7 @@ const handleLogout = () => {
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <RouterView />
     </main>
+
+    <Toaster />
   </div>
 </template>

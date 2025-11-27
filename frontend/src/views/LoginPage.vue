@@ -25,19 +25,11 @@ const handleLogin = async () => {
   attemptsRemaining.value = null
   minutesRemaining.value = null
 
-  console.log('[LOGIN] Submitting login form')
-  console.log('[LOGIN] Email:', email.value)
-
   const result = await authStore.login(email.value, password.value)
 
-  console.log('[LOGIN] Login result:', result)
-
   if (result.success) {
-    console.log('[LOGIN] Login successful, redirecting to home...')
     await router.push('/')
-    console.log('[LOGIN] Navigation complete')
   } else {
-    console.log('[LOGIN] Login failed:', result.error)
     errorMessage.value = result.error || 'Erreur de connexion'
     attemptsRemaining.value = result.attemptsRemaining ?? null
     minutesRemaining.value = result.minutesRemaining ?? null

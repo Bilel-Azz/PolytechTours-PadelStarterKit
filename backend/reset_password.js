@@ -4,7 +4,7 @@ const { User } = require('./models');
 async function resetPassword() {
     try {
         const email = 'admin@padel.com';
-        const newPassword = 'admin123';
+        const newPassword = 'Admin@2025!';
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
         const user = await User.findOne({ where: { email } });

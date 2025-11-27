@@ -90,11 +90,11 @@ const myStats = ref({
 const getMedalComponent = (position) => {
   switch (position) {
     case 1:
-      return { icon: Trophy, class: 'text-yellow-500 bg-yellow-50' }
+      return { icon: Trophy, class: 'text-yellow-600 dark:text-yellow-400 bg-yellow-500/10' }
     case 2:
-      return { icon: Medal, class: 'text-gray-400 bg-gray-100' }
+      return { icon: Medal, class: 'text-muted-foreground bg-muted' }
     case 3:
-      return { icon: Award, class: 'text-amber-600 bg-amber-50' }
+      return { icon: Award, class: 'text-amber-600 dark:text-amber-400 bg-amber-500/10' }
     default:
       return null
   }
@@ -103,9 +103,9 @@ const getMedalComponent = (position) => {
 const getTrendIcon = (trend) => {
   switch (trend) {
     case 'up':
-      return { icon: ChevronUp, class: 'text-green-600' }
+      return { icon: ChevronUp, class: 'text-green-600 dark:text-green-400' }
     case 'down':
-      return { icon: ChevronDown, class: 'text-red-600' }
+      return { icon: ChevronDown, class: 'text-red-600 dark:text-red-400' }
     default:
       return null
   }
@@ -145,37 +145,37 @@ const getResultBadge = (result) => {
         </Card>
 
         <Card class="p-6 relative overflow-hidden group hover:shadow-lg transition-all">
-          <div class="absolute top-0 right-0 w-32 h-32 bg-green-500/5 rounded-full -mr-16 -mt-16 group-hover:bg-green-500/10 transition-colors"></div>
+          <div class="absolute top-0 right-0 w-32 h-32 bg-green-500/5 dark:bg-green-500/10 rounded-full -mr-16 -mt-16 group-hover:bg-green-500/10 dark:group-hover:bg-green-500/20 transition-colors"></div>
           <div class="relative space-y-2">
             <div class="flex items-center justify-between">
-              <TrendingUp class="h-8 w-8 text-green-600" />
+              <TrendingUp class="h-8 w-8 text-green-600 dark:text-green-400" />
               <Badge>Taux victoire</Badge>
             </div>
-            <p class="text-3xl font-bold text-green-600">{{ myStats.winRate }}%</p>
+            <p class="text-3xl font-bold text-green-600 dark:text-green-400">{{ myStats.winRate }}%</p>
             <Progress :model-value="myStats.winRate" class="h-2" />
           </div>
         </Card>
 
         <Card class="p-6 relative overflow-hidden group hover:shadow-lg transition-all">
-          <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full -mr-16 -mt-16 group-hover:bg-blue-500/10 transition-colors"></div>
+          <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 dark:bg-blue-500/10 rounded-full -mr-16 -mt-16 group-hover:bg-blue-500/10 dark:group-hover:bg-blue-500/20 transition-colors"></div>
           <div class="relative space-y-2">
             <div class="flex items-center justify-between">
-              <Zap class="h-8 w-8 text-blue-600" />
+              <Zap class="h-8 w-8 text-blue-600 dark:text-blue-400" />
               <Badge variant="outline">Points</Badge>
             </div>
-            <p class="text-3xl font-bold text-blue-600">{{ myStats.points }}</p>
+            <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ myStats.points }}</p>
             <p class="text-sm text-muted-foreground">{{ myStats.won }}V - {{ myStats.lost }}D</p>
           </div>
         </Card>
 
         <Card class="p-6 relative overflow-hidden group hover:shadow-lg transition-all">
-          <div class="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full -mr-16 -mt-16 group-hover:bg-orange-500/10 transition-colors"></div>
+          <div class="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 dark:bg-orange-500/10 rounded-full -mr-16 -mt-16 group-hover:bg-orange-500/10 dark:group-hover:bg-orange-500/20 transition-colors"></div>
           <div class="relative space-y-2">
             <div class="flex items-center justify-between">
-              <Flame class="h-8 w-8 text-orange-600" />
+              <Flame class="h-8 w-8 text-orange-600 dark:text-orange-400" />
               <Badge variant="destructive">Série</Badge>
             </div>
-            <p class="text-3xl font-bold text-orange-600">{{ myStats.streak }}</p>
+            <p class="text-3xl font-bold text-orange-600 dark:text-orange-400">{{ myStats.streak }}</p>
             <p class="text-sm text-muted-foreground">matchs d'affilée</p>
           </div>
         </Card>
@@ -292,13 +292,13 @@ const getResultBadge = (result) => {
                 </td>
                 <td class="py-4 px-4 text-center text-muted-foreground">{{ team.played }}</td>
                 <td class="py-4 px-4 text-center">
-                  <Badge variant="outline" class="bg-green-50 text-green-700 border-green-200">{{ team.won }}</Badge>
+                  <Badge variant="outline" class="bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800">{{ team.won }}</Badge>
                 </td>
                 <td class="py-4 px-4 text-center">
-                  <Badge variant="outline" class="bg-red-50 text-red-700 border-red-200">{{ team.lost }}</Badge>
+                  <Badge variant="outline" class="bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800">{{ team.lost }}</Badge>
                 </td>
                 <td class="py-4 px-4 text-center">
-                  <span :class="team.setDiff.startsWith('+') ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+                  <span :class="team.setDiff.startsWith('+') ? 'text-green-600 dark:text-green-400 font-semibold' : 'text-red-600 dark:text-red-400 font-semibold'">
                     {{ team.setDiff }}
                   </span>
                 </td>

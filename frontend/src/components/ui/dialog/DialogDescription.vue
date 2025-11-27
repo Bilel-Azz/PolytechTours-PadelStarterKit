@@ -1,11 +1,12 @@
 <script setup>
+import { DialogDescription } from 'radix-vue'
 import { cn } from '@/lib/utils'
 </script>
 
 <template>
-  <div :class="cn('rounded-lg border bg-card text-card-foreground shadow-sm', $attrs.class)">
+  <DialogDescription :class="cn('text-sm text-muted-foreground', $attrs.class)">
     <slot />
-  </div>
+  </DialogDescription>
 </template>
 
 <script>

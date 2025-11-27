@@ -42,25 +42,15 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(email, password) {
     loading.value = true
     error.value = null
-    console.log('[AUTH] Login attempt for:', email)
 
     try {
       const response = await authAPI.login(email, password)
       const { access_token, user: userData } = response.data
 
-      console.log('[AUTH] Login successful, setting auth...')
-      console.log('[AUTH] Token:', access_token?.substring(0, 20) + '...')
-      console.log('[AUTH] User:', userData)
-
       setAuth(access_token, userData)
-
-      console.log('[AUTH] Auth set complete')
-      console.log('[AUTH] isAuthenticated:', isAuthenticated.value)
-      console.log('[AUTH] token.value:', !!token.value)
 
       return { success: true }
     } catch (err) {
-      console.error('[AUTH] Login error:', err)
       const errorData = err.response?.data?.detail
 
       if (typeof errorData === 'object') {
