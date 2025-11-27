@@ -9,6 +9,8 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8000;
 
+app.set("trust proxy", true);
+
 // Middleware
 app.use(cors({
   origin: true, // Allow any origin (reflects the request origin)

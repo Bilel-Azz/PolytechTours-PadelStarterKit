@@ -31,9 +31,13 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Token expiré ou invalide
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      window.location.href = '/login'
+      // Ne pas rediriger automatiquement lors d'une tentative de connexion
+      const reqUrl = error.config?.url || ''
+      if (!reqUrl.includes('/auth/login') && !reqUrl.includes('/auth/change-password')) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }

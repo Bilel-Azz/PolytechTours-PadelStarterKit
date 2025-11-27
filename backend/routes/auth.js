@@ -1,13 +1,44 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { User, LoginAttempt } = require('../models');
+const { User, LoginAttempt, IpAttempt } = require('../models');
 const verifyToken = require('../middleware/auth');
 const router = express.Router();
+const { getClientIp, getIpLockStatus, checkAndUpdateIpAttempts } = require('../models/ipLock');
+
 
 const MAX_ATTEMPTS = 5;
+const WINDOW_MINUTES = 15;  // fenêtre d’échecs
+const LOCK_MINUTES = 30;    // blocage
 const LOCKOUT_MINUTES = 30;
 const SECRET_KEY = process.env.SECRET_KEY || "votre_super_secret_key_changez_moi_en_prod";
+
+function addMinutes(date, minutes) {
+  return new Date(date.getTime() + minutes * 60 * 1000);
+}
+
+async function recordFailure(ipRow, now) {
+  // Reset si la dernière tentative est hors fenêtre
+  if (ipRow.last_attempt && (now - ipRow.last_attempt) > WINDOW_MINUTES * 60 * 1000) {
+    ipRow.attempts_count = 0;
+  }
+
+  ipRow.attempts_count += 1;
+  ipRow.last_attempt = now;
+
+  if (ipRow.attempts_count >= MAX_ATTEMPTS) {
+    ipRow.locked_until = addMinutes(now, LOCK_MINUTES);
+  }
+
+  await ipRow.save();
+}
+
+async function resetOnSuccess(ipRow, now) {
+  ipRow.attempts_count = 0;
+  ipRow.last_attempt = now;
+  ipRow.locked_until = null;
+  await ipRow.save();
+}
 
 // Helper function to check and update login attempts
 async function checkAndUpdateAttempts(email, success) {
@@ -56,6 +87,19 @@ async function checkAndUpdateAttempts(email, success) {
 
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
+    const now = new Date();
+    const ip = getClientIp(req);
+
+    const lock = await getIpLockStatus(ip);
+    if (lock.locked) {
+    return res.status(403).json({
+        detail: {
+        message: lock.message,
+        locked_until: lock.locked_until,
+        minutes_remaining: lock.minutes_remaining
+        }
+    });
+    }
 
     try {
         const user = await User.findOne({ where: { email } });
@@ -66,7 +110,8 @@ router.post('/login', async (req, res) => {
         const isValidPassword = user && await bcrypt.compare(password, user.password_hash);
 
         if (!user || !isValidPassword) {
-            const status = await checkAndUpdateAttempts(email, false);
+            //const status = await checkAndUpdateAttempts(email, false);
+            const status = await checkAndUpdateIpAttempts(ip, false);
             if (status.locked) {
                 return res.status(403).json({
                     detail: {
@@ -89,7 +134,8 @@ router.post('/login', async (req, res) => {
         }
 
         // Success
-        await checkAndUpdateAttempts(email, true);
+        //await checkAndUpdateAttempts(email, true);
+        await checkAndUpdateIpAttempts(ip, true);
 
         const token = jwt.sign(
             { sub: user.id, email: user.email, role: user.role },
