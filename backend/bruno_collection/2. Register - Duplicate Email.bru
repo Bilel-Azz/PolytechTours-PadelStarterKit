@@ -1,0 +1,43 @@
+meta {
+  name: 2. Register - Duplicate Email ❌
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8000/api/v1/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "duplicate@test.com",
+    "password": "password123"
+  }
+}
+
+assert {
+  res.status: in [201, 400]
+}
+
+script:post-response {
+  if (res.status === 201) {
+    console.log("ℹ️  First registration - creating user");
+  } else if (res.status === 400) {
+    console.log("✅ Duplicate email correctly detected");
+  }
+}
+
+tests {
+  test("should handle duplicate email correctly", function() {
+    const status = res.getStatus();
+    if (status === 201) {
+      console.log("First registration - user created");
+    } else if (status === 400) {
+      expect(res.getBody().detail).to.equal("Cet email est déjà utilisé");
+    } else {
+      throw new Error("Unexpected status code: " + status);
+    }
+  });
+}

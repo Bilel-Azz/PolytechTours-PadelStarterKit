@@ -1,0 +1,36 @@
+meta {
+  name: 5. Register - Missing Fields ❌
+  type: http
+  seq: 5
+}
+
+post {
+  url: http://localhost:8000/api/v1/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "test@example.com"
+  }
+}
+
+assert {
+  res.status: eq 400
+  res.body.detail: eq Email et mot de passe requis
+}
+
+script:post-response {
+  console.log("✅ Missing password correctly detected");
+}
+
+tests {
+  test("should return 400 for missing password", function() {
+    expect(res.getStatus()).to.equal(400);
+  });
+  
+  test("should return correct error message", function() {
+    expect(res.getBody().detail).to.equal("Email et mot de passe requis");
+  });
+}

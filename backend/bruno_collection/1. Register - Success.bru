@@ -1,0 +1,55 @@
+meta {
+  name: 1. Register - Success ✅
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8000/api/v1/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "Victor.rivet@test.com",
+    "password": "password123"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.access_token: isDefined
+  res.body.token_type: eq bearer
+  res.body.user: isDefined
+  res.body.user.id: isDefined
+  res.body.user.email: isDefined
+  res.body.user.role: eq JOUEUR
+  res.body.user.is_active: eq true
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("token", res.body.access_token);
+    console.log("✅ Registration successful with token:", res.body.access_token.substring(0, 20) + "...");
+  }
+}
+
+tests {
+  test("should return 201 status code", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("should have access_token", function() {
+    expect(res.getBody().access_token).to.be.a('string');
+  });
+  
+  test("should have token_type as bearer", function() {
+    expect(res.getBody().token_type).to.equal('bearer');
+  });
+  
+  test("should have user with correct role", function() {
+    expect(res.getBody().user.role).to.equal('JOUEUR');
+    expect(res.getBody().user.is_active).to.equal(true);
+  });
+}
