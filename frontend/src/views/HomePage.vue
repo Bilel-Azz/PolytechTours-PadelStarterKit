@@ -1,11 +1,27 @@
 <script setup>
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { Calendar, Trophy, BarChart3, Shield, LogIn } from 'lucide-vue-next'
+import { LogIn } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
 import Button from '../components/ui/button.vue'
 import Card from '../components/ui/card.vue'
 
+const router = useRouter()
 const authStore = useAuthStore()
+
+// Rediriger automatiquement si connecté
+onMounted(() => {
+  authStore.checkAuth()
+
+  if (authStore.isAuthenticated) {
+    if (authStore.isAdmin) {
+      router.push('/admin')
+    } else {
+      router.push('/user/matches')
+    }
+  }
+})
 </script>
 
 <template>
@@ -32,7 +48,7 @@ const authStore = useAuthStore()
       </div>
 
       <!-- Not Authenticated -->
-      <div v-if="!authStore.isAuthenticated" class="space-y-6">
+      <div class="space-y-6">
         <Card class="p-8 max-w-md mx-auto">
           <p class="text-muted-foreground mb-6">
             Connectez-vous pour accéder à votre planning, vos matchs et vos résultats
@@ -43,63 +59,13 @@ const authStore = useAuthStore()
               Se connecter
             </Button>
           </RouterLink>
+          <div class="mt-4 text-center text-sm">
+            <span class="text-muted-foreground">Pas encore de compte ?</span>
+            <RouterLink to="/signup" class="ml-1 text-primary hover:underline">
+              Créer un compte
+            </RouterLink>
+          </div>
         </Card>
-      </div>
-
-      <!-- Authenticated -->
-      <div v-else class="space-y-8">
-        <Card class="p-6">
-          <p class="text-xl">
-            Bonjour <span class="font-semibold text-primary">{{ authStore.user?.email }}</span> !
-          </p>
-        </Card>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <RouterLink to="/planning" class="group">
-            <Card class="p-6 h-full transition-all hover:shadow-lg hover:scale-105">
-              <div class="flex flex-col items-center text-center space-y-3">
-                <div class="p-3 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                  <Calendar class="h-8 w-8" />
-                </div>
-                <h3 class="text-xl font-semibold">Planning</h3>
-                <p class="text-sm text-muted-foreground">Consultez vos prochains matchs</p>
-              </div>
-            </Card>
-          </RouterLink>
-
-          <RouterLink to="/matches" class="group">
-            <Card class="p-6 h-full transition-all hover:shadow-lg hover:scale-105">
-              <div class="flex flex-col items-center text-center space-y-3">
-                <div class="p-3 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                  <Trophy class="h-8 w-8" />
-                </div>
-                <h3 class="text-xl font-semibold">Matchs</h3>
-                <p class="text-sm text-muted-foreground">Suivez vos rencontres</p>
-              </div>
-            </Card>
-          </RouterLink>
-
-          <RouterLink to="/results" class="group">
-            <Card class="p-6 h-full transition-all hover:shadow-lg hover:scale-105">
-              <div class="flex flex-col items-center text-center space-y-3">
-                <div class="p-3 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                  <BarChart3 class="h-8 w-8" />
-                </div>
-                <h3 class="text-xl font-semibold">Résultats</h3>
-                <p class="text-sm text-muted-foreground">Classement et statistiques</p>
-              </div>
-            </Card>
-          </RouterLink>
-        </div>
-
-        <div v-if="authStore.isAdmin">
-          <RouterLink to="/admin">
-            <Button variant="secondary" size="lg" class="gap-2">
-              <Shield class="h-5 w-5" />
-              Accéder à l'administration
-            </Button>
-          </RouterLink>
-        </div>
       </div>
     </div>
   </div>

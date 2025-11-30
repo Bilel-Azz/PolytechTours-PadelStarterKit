@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { Calendar, MapPin, Users, Trophy, Filter, Clock, Building2, ChevronRight, Sparkles } from 'lucide-vue-next'
 import Card from '../components/ui/card.vue'
@@ -7,111 +7,78 @@ import Badge from '../components/ui/badge.vue'
 import Button from '../components/ui/button.vue'
 import Select from '../components/ui/select.vue'
 import Separator from '../components/ui/separator.vue'
+import { matchesAPI, teamsAPI, poolsAPI } from '@/services/api'
+import { useToast } from '@/composables/useToast'
 
 const authStore = useAuthStore()
+const { toast } = useToast()
 
-// Mock data - À remplacer par l'API
-const matches = ref([
-  {
-    id: 1,
-    date: '2025-11-28',
-    time: '19:30',
-    court: 1,
-    status: 'A_VENIR',
-    team1: {
-      company: 'Tech Corp',
-      players: ['John Doe', 'Jane Smith'],
-      rank: 1
-    },
-    team2: {
-      company: 'Innov Ltd',
-      players: ['Alice Martin', 'Bob Dupont'],
-      rank: 3
-    },
-    pool: 'Poule A',
-    score: null
-  },
-  {
-    id: 2,
-    date: '2025-11-28',
-    time: '20:00',
-    court: 2,
-    status: 'A_VENIR',
-    team1: {
-      company: 'StartCo',
-      players: ['Charlie Brown', 'Diana Prince'],
-      rank: 4
-    },
-    team2: {
-      company: 'DevHub',
-      players: ['Eve Adams', 'Frank Wilson'],
-      rank: 2
-    },
-    pool: 'Poule A',
-    score: null
-  },
-  {
-    id: 3,
-    date: '2025-11-22',
-    time: '19:30',
-    court: 1,
-    status: 'TERMINE',
-    team1: {
-      company: 'Tech Corp',
-      players: ['John Doe', 'Jane Smith'],
-      rank: 1,
-      setsWon: 2
-    },
-    team2: {
-      company: 'Innov Ltd',
-      players: ['Alice Martin', 'Bob Dupont'],
-      rank: 3,
-      setsWon: 0
-    },
-    pool: 'Poule A',
-    score: '6-4, 6-3'
-  },
-  {
-    id: 4,
-    date: '2025-11-15',
-    time: '20:00',
-    court: 3,
-    status: 'TERMINE',
-    team1: {
-      company: 'StartCo',
-      players: ['Charlie Brown', 'Diana Prince'],
-      rank: 4,
-      setsWon: 1
-    },
-    team2: {
-      company: 'Tech Corp',
-      players: ['John Doe', 'Jane Smith'],
-      rank: 1,
-      setsWon: 2
-    },
-    pool: 'Poule A',
-    score: '6-4, 3-6, 7-5'
-  },
-  {
-    id: 5,
-    date: '2025-11-10',
-    time: '19:30',
-    court: 2,
-    status: 'ANNULE',
-    team1: {
-      company: 'DevHub',
-      players: ['Eve Adams', 'Frank Wilson'],
-      rank: 2
-    },
-    team2: {
-      company: 'Innov Ltd',
-      players: ['Alice Martin', 'Bob Dupont'],
-      rank: 3
-    },
-    pool: 'Poule A',
-    score: null
+// Data from API
+const matches = ref([])
+const loading = ref(false)
+
+// Charger les matchs depuis l'API
+const loadMatches = async () => {
+  try {
+    loading.value = true
+    const response = await matchesAPI.getAll()
+    const matchesData = response.data.data || response.data
+
+    // Transformer les données pour correspondre au format attendu
+    // Le backend retourne déjà la structure formatée selon routes/matches.js
+    matches.value = matchesData.map(match => ({
+      id: match.id,
+      date: match.event?.date || '2025-01-01',
+      time: match.event?.time || '00:00',
+      court: match.court_number || 1,
+      status: match.status || 'A_VENIR',
+      team1: {
+        id: match.team1?.id,
+        company: match.team1?.company || 'Équipe 1',
+        players: match.team1?.players?.map(p => `${p.first_name} ${p.last_name}`) || [],
+        rank: match.team1?.rank || 0,
+        setsWon: calculateSetsWon(match.score_team1)
+      },
+      team2: {
+        id: match.team2?.id,
+        company: match.team2?.company || 'Équipe 2',
+        players: match.team2?.players?.map(p => `${p.first_name} ${p.last_name}`) || [],
+        rank: match.team2?.rank || 0,
+        setsWon: calculateSetsWon(match.score_team2)
+      },
+      pool: match.team1?.pool?.name || 'Non assigné',
+      score: formatScore(match.score_team1, match.score_team2)
+    }))
+  } catch (error) {
+    console.error('Erreur lors du chargement des matchs:', error)
+    toast.error('Erreur', 'Impossible de charger les matchs')
+  } finally {
+    loading.value = false
   }
-])
+}
+
+// Calculer le nombre de sets gagnés
+const calculateSetsWon = (scoreStr) => {
+  if (!scoreStr) return 0
+  const sets = scoreStr.split(',').map(s => s.trim())
+  return sets.filter(set => {
+    const [score1, score2] = set.split('-').map(Number)
+    return score1 > score2
+  }).length
+}
+
+// Formater le score pour l'affichage
+const formatScore = (score1, score2) => {
+  if (!score1 || !score2) return null
+  const sets1 = score1.split(',').map(s => s.trim())
+  const sets2 = score2.split(',').map(s => s.trim())
+  return sets1.map((s, i) => `${s}-${sets2[i] || '0'}`).join(', ')
+}
+
+// Charger les données au montage
+onMounted(() => {
+  loadMatches()
+})
 
 const filterStatus = ref('ALL')
 const filterPool = ref('ALL')
