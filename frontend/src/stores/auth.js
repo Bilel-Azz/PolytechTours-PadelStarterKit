@@ -48,6 +48,7 @@ export const useAuthStore = defineStore('auth', () => {
       const { access_token, user: userData } = response.data
 
       setAuth(access_token, userData)
+
       return { success: true }
     } catch (err) {
       const errorData = err.response?.data?.detail
