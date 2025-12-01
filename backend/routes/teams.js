@@ -67,17 +67,17 @@ router.get(
             id: team.id,
             company: team.company,
             players: [
-                {
+                team.player1 ? {
                     id: team.player1.id,
                     first_name: team.player1.firstName,
                     last_name: team.player1.lastName,
-                },
-                {
+                } : null,
+                team.player2 ? {
                     id: team.player2.id,
                     first_name: team.player2.firstName,
                     last_name: team.player2.lastName,
-                },
-            ],
+                } : null,
+            ].filter(p => p !== null),
             pool: team.pool ? { id: team.pool.id, name: team.pool.name } : null,
         }));
 
@@ -120,7 +120,26 @@ router.get(
             throw new NotFoundError('Équipe');
         }
 
-        return successResponse(res, team, 'Équipe récupérée avec succès');
+        // Format response to match specifications
+        const formattedTeam = {
+            id: team.id,
+            company: team.company,
+            players: [
+                team.player1 ? {
+                    id: team.player1.id,
+                    first_name: team.player1.firstName,
+                    last_name: team.player1.lastName,
+                } : null,
+                team.player2 ? {
+                    id: team.player2.id,
+                    first_name: team.player2.firstName,
+                    last_name: team.player2.lastName,
+                } : null,
+            ].filter(p => p !== null),
+            pool: team.pool ? { id: team.pool.id, name: team.pool.name } : null,
+        };
+
+        return successResponse(res, formattedTeam, 'Équipe récupérée avec succès');
     })
 );
 

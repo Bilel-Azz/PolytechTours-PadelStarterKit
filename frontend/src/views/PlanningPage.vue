@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, MapPin, Users, MoreVertical, Edit, Trash, Eye, CheckCircle2 } from 'lucide-vue-next'
 import Button from '../components/ui/button.vue'
 import Card from '../components/ui/card.vue'
@@ -21,6 +21,7 @@ import DropdownMenuContent from '../components/ui/dropdown-menu/DropdownMenuCont
 import DropdownMenuItem from '../components/ui/dropdown-menu/DropdownMenuItem.vue'
 import DropdownMenuSeparator from '../components/ui/dropdown-menu/DropdownMenuSeparator.vue'
 import { useToast } from '@/composables/useToast'
+import { eventsAPI, matchesAPI, teamsAPI } from '@/services/api'
 
 const { toast } = useToast()
 
@@ -30,56 +31,84 @@ const selectedDate = ref(null)
 const showEventDialog = ref(false)
 const showEditDialog = ref(false)
 const editingEvent = ref(null)
+const loading = ref(false)
 
 // Form state
 const newEvent = ref({
   date: '',
   time: '',
   court: 1,
-  team1Company: '',
-  team1Players: '',
-  team2Company: '',
-  team2Players: ''
+  team1Id: null,
+  team2Id: null
 })
 
-// Mock data - À remplacer par l'API
-const events = ref([
-  {
-    id: 1,
-    date: '2025-11-28',
-    time: '19:30',
-    matches: [
-      {
-        id: 1,
-        court: 1,
-        team1: { company: 'Tech Corp', players: ['John Doe', 'Jane Smith'] },
-        team2: { company: 'Innov Ltd', players: ['Alice Martin', 'Bob Dupont'] },
-        status: 'A_VENIR'
-      },
-      {
-        id: 2,
-        court: 2,
-        team1: { company: 'StartCo', players: ['Charlie Brown', 'Diana Prince'] },
-        team2: { company: 'DevHub', players: ['Eve Adams', 'Frank Wilson'] },
-        status: 'A_VENIR'
-      }
-    ]
-  },
-  {
-    id: 2,
-    date: '2025-11-29',
-    time: '20:00',
-    matches: [
-      {
-        id: 3,
-        court: 1,
-        team1: { company: 'Tech Corp', players: ['John Doe', 'Jane Smith'] },
-        team2: { company: 'StartCo', players: ['Charlie Brown', 'Diana Prince'] },
-        status: 'A_VENIR'
-      }
-    ]
+// Data from API
+const events = ref([])
+const teams = ref([])
+
+// Charger les équipes disponibles
+const loadTeams = async () => {
+  try {
+    const response = await teamsAPI.getAll()
+    const teamsData = response.data.data || response.data
+    teams.value = teamsData.map(team => ({
+      value: team.id,
+      label: `${team.company} (${team.player1.firstName} ${team.player1.lastName} & ${team.player2.firstName} ${team.player2.lastName})`
+    }))
+  } catch (error) {
+    console.error('Erreur lors du chargement des équipes:', error)
   }
-])
+}
+
+// Charger les événements depuis l'API
+const loadEvents = async () => {
+  try {
+    loading.value = true
+    const eventsResponse = await eventsAPI.getAll()
+
+    // Le backend retourne déjà les événements avec leurs matchs et équipes
+    const eventsData = eventsResponse.data.data || eventsResponse.data
+
+    // Transformer les données pour correspondre au format attendu par le template
+    events.value = eventsData.map(event => ({
+      id: event.id,
+      date: event.eventDate, // Backend retourne eventDate
+      time: event.eventTime, // Backend retourne eventTime
+      matches: event.matches.map(match => ({
+        id: match.id,
+        court: match.courtNumber,
+        team1: {
+          id: match.team1.id,
+          company: match.team1.company,
+          players: [
+            `${match.team1.player1.firstName} ${match.team1.player1.lastName}`,
+            `${match.team1.player2.firstName} ${match.team1.player2.lastName}`
+          ]
+        },
+        team2: {
+          id: match.team2.id,
+          company: match.team2.company,
+          players: [
+            `${match.team2.player1.firstName} ${match.team2.player1.lastName}`,
+            `${match.team2.player2.firstName} ${match.team2.player2.lastName}`
+          ]
+        },
+        status: match.status
+      }))
+    })).filter(event => event.matches.length > 0)
+  } catch (error) {
+    console.error('Erreur lors du chargement des événements:', error)
+    toast.error('Erreur', 'Impossible de charger les événements')
+  } finally {
+    loading.value = false
+  }
+}
+
+// Charger les données au montage
+onMounted(() => {
+  loadEvents()
+  loadTeams()
+})
 
 // Fonctions de navigation du calendrier
 const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
@@ -210,46 +239,57 @@ const getStatusLabel = (status) => {
 }
 
 // Ajouter un événement
-const addEvent = () => {
-  if (!newEvent.value.date || !newEvent.value.time) {
+const addEvent = async () => {
+  if (!newEvent.value.date || !newEvent.value.time || !newEvent.value.team1Id || !newEvent.value.team2Id) {
     toast.error('Erreur', 'Veuillez remplir tous les champs obligatoires')
     return
   }
 
-  const eventData = {
-    id: Date.now(),
-    date: newEvent.value.date,
-    time: newEvent.value.time,
-    matches: [{
-      id: Date.now(),
-      court: newEvent.value.court,
-      team1: {
-        company: newEvent.value.team1Company,
-        players: newEvent.value.team1Players.split(',').map(p => p.trim())
-      },
-      team2: {
-        company: newEvent.value.team2Company,
-        players: newEvent.value.team2Players.split(',').map(p => p.trim())
-      },
-      status: 'A_VENIR'
-    }]
+  if (newEvent.value.team1Id === newEvent.value.team2Id) {
+    toast.error('Erreur', 'Une équipe ne peut pas jouer contre elle-même')
+    return
   }
 
-  events.value.push(eventData)
-  showEventDialog.value = false
+  try {
+    loading.value = true
 
-  // Reset form
-  newEvent.value = {
-    date: '',
-    time: '',
-    court: 1,
-    team1Company: '',
-    team1Players: '',
-    team2Company: '',
-    team2Players: ''
+    // Créer l'événement avec le match selon le schéma du backend
+    const eventData = {
+      eventDate: newEvent.value.date,
+      eventTime: newEvent.value.time,
+      matches: [
+        {
+          team1Id: newEvent.value.team1Id,
+          team2Id: newEvent.value.team2Id,
+          courtNumber: newEvent.value.court
+        }
+      ]
+    }
+
+    await eventsAPI.create(eventData)
+
+    // Recharger les événements
+    await loadEvents()
+
+    showEventDialog.value = false
+
+    // Reset form
+    newEvent.value = {
+      date: '',
+      time: '',
+      court: 1,
+      team1Id: null,
+      team2Id: null
+    }
+
+    toast.success('Événement créé', 'L\'événement a été ajouté au planning')
+  } catch (error) {
+    console.error('Erreur lors de la création de l\'événement:', error)
+    const errorMessage = error.response?.data?.errors?.[0]?.message || error.response?.data?.message || 'Impossible de créer l\'événement'
+    toast.error('Erreur', errorMessage)
+  } finally {
+    loading.value = false
   }
-
-  toast.success('Événement créé', 'L\'événement a été ajouté au planning')
 }
 
 // Actions sur les matchs
@@ -263,26 +303,45 @@ const editMatch = (match) => {
   toast('Édition', 'Ouverture de l\'éditeur de match')
 }
 
-const deleteMatch = (matchId, eventId) => {
-  const eventIndex = events.value.findIndex(e => e.id === eventId)
-  if (eventIndex !== -1) {
-    const matchIndex = events.value[eventIndex].matches.findIndex(m => m.id === matchId)
-    if (matchIndex !== -1) {
-      events.value[eventIndex].matches.splice(matchIndex, 1)
+const deleteMatch = async (matchId, eventId) => {
+  try {
+    loading.value = true
+    await matchesAPI.delete(matchId)
 
-      // Si plus de matchs, supprimer l'événement
-      if (events.value[eventIndex].matches.length === 0) {
-        events.value.splice(eventIndex, 1)
-      }
-
-      toast.success('Match supprimé', 'Le match a été supprimé du planning')
+    // Vérifier si l'événement a encore des matchs
+    const event = events.value.find(e => e.id === eventId)
+    if (event && event.matches.length === 1) {
+      // Si c'était le dernier match, supprimer l'événement aussi
+      await eventsAPI.delete(eventId)
     }
+
+    // Recharger les événements
+    await loadEvents()
+
+    toast.success('Match supprimé', 'Le match a été supprimé du planning')
+  } catch (error) {
+    console.error('Erreur lors de la suppression du match:', error)
+    toast.error('Erreur', error.response?.data?.message || 'Impossible de supprimer le match')
+  } finally {
+    loading.value = false
   }
 }
 
-const markAsComplete = (match) => {
-  match.status = 'TERMINE'
-  toast.success('Match terminé', `${match.team1.company} vs ${match.team2.company} marqué comme terminé`)
+const markAsComplete = async (match) => {
+  try {
+    loading.value = true
+    await matchesAPI.update(match.id, { status: 'TERMINE' })
+
+    // Mettre à jour localement
+    match.status = 'TERMINE'
+
+    toast.success('Match terminé', `${match.team1.company} vs ${match.team2.company} marqué comme terminé`)
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du match:', error)
+    toast.error('Erreur', error.response?.data?.message || 'Impossible de mettre à jour le match')
+  } finally {
+    loading.value = false
+  }
 }
 
 const courtOptions = [
@@ -337,30 +396,14 @@ const courtOptions = [
 
             <Separator />
 
-            <div class="space-y-4">
-              <h4 class="text-sm font-semibold">Équipe 1</h4>
-              <div class="space-y-2">
-                <Label for="team1-company">Entreprise</Label>
-                <Input id="team1-company" v-model="newEvent.team1Company" placeholder="Tech Corp" />
-              </div>
-              <div class="space-y-2">
-                <Label for="team1-players">Joueurs (séparés par des virgules)</Label>
-                <Input id="team1-players" v-model="newEvent.team1Players" placeholder="John Doe, Jane Smith" />
-              </div>
+            <div class="space-y-2">
+              <Label for="team1">Équipe 1 *</Label>
+              <Select id="team1" v-model="newEvent.team1Id" :options="teams" placeholder="Sélectionner l'équipe 1" />
             </div>
 
-            <Separator />
-
-            <div class="space-y-4">
-              <h4 class="text-sm font-semibold">Équipe 2</h4>
-              <div class="space-y-2">
-                <Label for="team2-company">Entreprise</Label>
-                <Input id="team2-company" v-model="newEvent.team2Company" placeholder="Innov Ltd" />
-              </div>
-              <div class="space-y-2">
-                <Label for="team2-players">Joueurs (séparés par des virgules)</Label>
-                <Input id="team2-players" v-model="newEvent.team2Players" placeholder="Alice Martin, Bob Dupont" />
-              </div>
+            <div class="space-y-2">
+              <Label for="team2">Équipe 2 *</Label>
+              <Select id="team2" v-model="newEvent.team2Id" :options="teams" placeholder="Sélectionner l'équipe 2" />
             </div>
           </div>
 

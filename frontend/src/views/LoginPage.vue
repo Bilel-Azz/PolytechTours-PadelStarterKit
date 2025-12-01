@@ -125,6 +125,18 @@ const handleLogin = async () => {
             </p>
           </div>
         </Alert>
+
+        <!-- Lien vers signup -->
+        <div class="mt-6 text-center text-sm">
+          <span class="text-muted-foreground">Pas encore de compte ?</span>
+          <Button
+            variant="link"
+            class="ml-1 p-0 h-auto"
+            @click="router.push('/signup')"
+          >
+            Créer un compte
+          </Button>
+        </div>
       </Card>
     </div>
   </div>

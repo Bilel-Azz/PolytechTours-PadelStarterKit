@@ -1,90 +1,212 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { Trophy, TrendingUp, Medal, Award, Target, Zap, Flame, Star, Crown, ChevronUp, ChevronDown } from 'lucide-vue-next'
 import Card from '../components/ui/card.vue'
 import Badge from '../components/ui/badge.vue'
 import Separator from '../components/ui/separator.vue'
 import Progress from '../components/ui/progress.vue'
+import { matchesAPI, teamsAPI } from '@/services/api'
+import { useAuthStore } from '../stores/auth'
+import { useToast } from '@/composables/useToast'
 
-// Mock data - À remplacer par l'API
-const rankings = ref([
-  {
-    position: 1,
-    company: 'Tech Corp',
-    points: 12,
-    played: 4,
-    won: 4,
-    lost: 0,
-    setDiff: '+8',
-    winRate: 100,
-    trend: 'up'
-  },
-  {
-    position: 2,
-    company: 'Innov Ltd',
-    points: 9,
-    played: 4,
-    won: 3,
-    lost: 1,
-    setDiff: '+4',
-    winRate: 75,
-    trend: 'up'
-  },
-  {
-    position: 3,
-    company: 'DevHub',
-    points: 6,
-    played: 4,
-    won: 2,
-    lost: 2,
-    setDiff: '+1',
-    winRate: 50,
-    trend: 'down'
-  },
-  {
-    position: 4,
-    company: 'StartCo',
-    points: 3,
-    played: 4,
-    won: 1,
-    lost: 3,
-    setDiff: '-3',
-    winRate: 25,
-    trend: 'stable'
-  },
-  {
-    position: 5,
-    company: 'CodeFactory',
-    points: 0,
-    played: 4,
-    won: 0,
-    lost: 4,
-    setDiff: '-10',
-    winRate: 0,
-    trend: 'down'
-  }
-])
+const authStore = useAuthStore()
+const { toast } = useToast()
 
+// Data from API
+const rankings = ref([])
 const myStats = ref({
-  company: 'Tech Corp',
-  position: 1,
-  points: 12,
-  played: 4,
-  won: 4,
+  company: '',
+  position: 0,
+  points: 0,
+  played: 0,
+  won: 0,
   lost: 0,
-  winRate: 100,
-  streak: 4,
-  lastMatches: [
-    { result: 'W', opponent: 'Innov Ltd', score: '6-4, 6-3', date: '22/11' },
-    { result: 'W', opponent: 'DevHub', score: '6-2, 7-5', date: '15/11' },
-    { result: 'W', opponent: 'StartCo', score: '6-4, 3-6, 6-4', date: '08/11' },
-    { result: 'W', opponent: 'CodeFactory', score: '6-0, 6-1', date: '01/11' }
-  ],
-  achievements: [
-    { name: 'Série de victoires', value: '4 matchs', icon: Flame },
-    { name: 'Meilleur score', value: '6-0, 6-1', icon: Star },
-    { name: 'Leader', value: '1ère place', icon: Crown }
-  ]
+  winRate: 0,
+  streak: 0,
+  lastMatches: [],
+  achievements: []
+})
+const loading = ref(false)
+
+// Charger les résultats et classements depuis l'API
+const loadResults = async () => {
+  try {
+    loading.value = true
+    const [matchesResponse, teamsResponse] = await Promise.all([
+      matchesAPI.getAll(),
+      teamsAPI.getAll()
+    ])
+
+    const matchesData = matchesResponse.data.data || matchesResponse.data
+    const teamsData = teamsResponse.data.data || teamsResponse.data
+
+    // Calculer les classements à partir des matchs et équipes
+    const teamStats = calculateTeamStats(matchesData, teamsData)
+    rankings.value = teamStats.sort((a, b) => b.points - a.points)
+      .map((team, index) => ({
+        ...team,
+        position: index + 1
+      }))
+
+    // Récupérer les stats de l'utilisateur courant
+    const userTeam = rankings.value.find(t => t.company === authStore.user?.company)
+    if (userTeam) {
+      const userMatches = matchesData
+        .filter(m => m.team1?.company === userTeam.company || m.team2?.company === userTeam.company)
+        .filter(m => m.status === 'TERMINE')
+        .sort((a, b) => new Date(b.event?.date || '2025-01-01') - new Date(a.event?.date || '2025-01-01'))
+        .slice(0, 4)
+
+      myStats.value = {
+        company: userTeam.company,
+        position: userTeam.position,
+        points: userTeam.points,
+        played: userTeam.played,
+        won: userTeam.won,
+        lost: userTeam.lost,
+        winRate: userTeam.winRate,
+        streak: calculateStreak(matchesData, userTeam.company),
+        lastMatches: userMatches.map(match => {
+          const isTeam1 = match.team1?.company === userTeam.company
+          const setsWon1 = calculateSetsWonFromScore(match.score_team1)
+          const setsWon2 = calculateSetsWonFromScore(match.score_team2)
+          const won = isTeam1 ? (setsWon1 > setsWon2) : (setsWon2 > setsWon1)
+          return {
+            result: won ? 'W' : 'L',
+            opponent: isTeam1 ? match.team2?.company : match.team1?.company,
+            score: formatMatchScore(match.score_team1, match.score_team2) || 'N/A',
+            date: new Date(match.event?.date || '2025-01-01').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+          }
+        }),
+        achievements: [
+          { name: 'Série de victoires', value: `${calculateStreak(matchesData, userTeam.company)} matchs`, icon: Flame },
+          { name: 'Meilleur score', value: getBestScore(matchesData, userTeam.company), icon: Star },
+          { name: 'Classement', value: `${userTeam.position}ère place`, icon: Crown }
+        ]
+      }
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement des résultats:', error)
+    toast.error('Erreur', 'Impossible de charger les résultats')
+  } finally {
+    loading.value = false
+  }
+}
+
+// Calculer le nombre de sets gagnés depuis un score
+const calculateSetsWonFromScore = (scoreStr) => {
+  if (!scoreStr) return 0
+  const sets = scoreStr.split(',').map(s => s.trim())
+  return sets.filter(set => {
+    const [score1, score2] = set.split('-').map(Number)
+    return score1 > score2
+  }).length
+}
+
+// Formater le score du match
+const formatMatchScore = (score1, score2) => {
+  if (!score1 || !score2) return null
+  const sets1 = score1.split(',').map(s => s.trim())
+  const sets2 = score2.split(',').map(s => s.trim())
+  return sets1.map((s, i) => `${s}-${sets2[i] || '0'}`).join(', ')
+}
+
+// Calculer les statistiques d'équipe
+const calculateTeamStats = (matches, teams) => {
+  const stats = {}
+
+  // Initialiser les stats pour chaque équipe
+  teams.forEach(team => {
+    stats[team.company] = {
+      company: team.company,
+      points: 0,
+      played: 0,
+      won: 0,
+      lost: 0,
+      setDiff: 0,
+      winRate: 0,
+      trend: 'stable'
+    }
+  })
+
+  // Compter les matchs terminés
+  matches.filter(m => m.status === 'TERMINE').forEach(match => {
+    const team1Name = match.team1?.company
+    const team2Name = match.team2?.company
+
+    if (team1Name && stats[team1Name]) {
+      stats[team1Name].played++
+      const setsWon = calculateSetsWonFromScore(match.score_team1)
+      const setsLost = calculateSetsWonFromScore(match.score_team2)
+      stats[team1Name].setDiff += (setsWon - setsLost)
+
+      if (setsWon > setsLost) {
+        stats[team1Name].won++
+        stats[team1Name].points += 3
+      } else {
+        stats[team1Name].lost++
+      }
+    }
+
+    if (team2Name && stats[team2Name]) {
+      stats[team2Name].played++
+      const setsWon = calculateSetsWonFromScore(match.score_team2)
+      const setsLost = calculateSetsWonFromScore(match.score_team1)
+      stats[team2Name].setDiff += (setsWon - setsLost)
+
+      if (setsWon > setsLost) {
+        stats[team2Name].won++
+        stats[team2Name].points += 3
+      } else {
+        stats[team2Name].lost++
+      }
+    }
+  })
+
+  // Calculer le taux de victoire et formatter setDiff
+  Object.values(stats).forEach(team => {
+    team.winRate = team.played > 0 ? Math.round((team.won / team.played) * 100) : 0
+    team.setDiff = team.setDiff > 0 ? `+${team.setDiff}` : `${team.setDiff}`
+  })
+
+  return Object.values(stats)
+}
+
+// Calculer la série de victoires
+const calculateStreak = (matches, teamName) => {
+  const teamMatches = matches
+    .filter(m => (m.team1?.company === teamName || m.team2?.company === teamName) && m.status === 'TERMINE')
+    .sort((a, b) => new Date(b.event?.date || '2025-01-01') - new Date(a.event?.date || '2025-01-01'))
+
+  let streak = 0
+  for (const match of teamMatches) {
+    const isTeam1 = match.team1?.company === teamName
+    const setsWon1 = calculateSetsWonFromScore(match.score_team1)
+    const setsWon2 = calculateSetsWonFromScore(match.score_team2)
+    const won = isTeam1 ? (setsWon1 > setsWon2) : (setsWon2 > setsWon1)
+    if (won) {
+      streak++
+    } else {
+      break
+    }
+  }
+  return streak
+}
+
+// Obtenir le meilleur score
+const getBestScore = (matches, teamName) => {
+  const teamMatches = matches
+    .filter(m => (m.team1?.company === teamName || m.team2?.company === teamName) && m.status === 'TERMINE' && (m.score_team1 || m.score_team2))
+
+  if (teamMatches.length === 0) return 'N/A'
+
+  const bestMatch = teamMatches[0]
+  return formatMatchScore(bestMatch.score_team1, bestMatch.score_team2) || 'N/A'
+}
+
+// Charger les données au montage
+onMounted(() => {
+  loadResults()
 })
 
 const getMedalComponent = (position) => {
