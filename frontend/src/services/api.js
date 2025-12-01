@@ -44,6 +44,9 @@ export const authAPI = {
   login: (email, password) =>
     api.post('/auth/login', { email, password }),
 
+
+=======
+>>>>>>> main
   logout: () =>
     api.post('/auth/logout'),
 

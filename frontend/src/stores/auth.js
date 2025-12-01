@@ -32,7 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
   function checkAuth() {
     const savedToken = localStorage.getItem('token')
     const savedUser = localStorage.getItem('user')
-    
+
     if (savedToken && savedUser) {
       token.value = savedToken
       user.value = JSON.parse(savedUser)
@@ -70,6 +70,25 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function register(email, password) {
+    loading.value = true
+    error.value = null
+
+    try {
+      const response = await authAPI.register(email, password)
+      const { access_token, user: userData } = response.data
+
+      setAuth(access_token, userData)
+      return { success: true }
+    } catch (err) {
+      const errorData = err.response?.data?.detail
+      error.value = errorData || 'Erreur lors de l\'inscription'
+      return { success: false, error: error.value }
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function logout() {
     try {
       await authAPI.logout()
@@ -88,6 +107,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     isAdmin,
     login,
+    register,
     logout,
     checkAuth
   }
