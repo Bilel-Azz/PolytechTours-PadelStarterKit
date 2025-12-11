@@ -9,6 +9,28 @@ const MAX_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 30;
 const SECRET_KEY = process.env.SECRET_KEY || "votre_super_secret_key_changez_moi_en_prod";
 
+// Helper function to check if account is locked (without modifying attempts)
+async function checkLockoutStatus(email) {
+    const attempt = await LoginAttempt.findOne({ where: { email } });
+
+    if (!attempt) {
+        return { locked: false };
+    }
+
+    const now = new Date();
+    if (attempt.locked_until && attempt.locked_until > now) {
+        const minutesRemaining = Math.ceil((attempt.locked_until - now) / (1000 * 60));
+        return {
+            locked: true,
+            message: "Compte bloqué",
+            locked_until: attempt.locked_until,
+            minutes_remaining: minutesRemaining
+        };
+    }
+
+    return { locked: false };
+}
+
 // Helper function to check and update login attempts
 async function checkAndUpdateAttempts(email, success) {
     let attempt = await LoginAttempt.findOne({ where: { email } });
@@ -56,6 +78,10 @@ async function checkAndUpdateAttempts(email, success) {
 
 // Helper function to validate email format
 function isValidEmail(email) {
+    // Rejeter les caractères dangereux (XSS, injection)
+    if (/[<>'"(){}]/.test(email)) {
+        return false;
+    }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
 }
@@ -139,6 +165,18 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
     try {
+        // Vérifier d'abord si le compte est bloqué avant toute autre vérification
+        const lockoutStatus = await checkLockoutStatus(email);
+        if (lockoutStatus.locked) {
+            return res.status(403).json({
+                detail: {
+                    message: lockoutStatus.message,
+                    locked_until: lockoutStatus.locked_until,
+                    minutes_remaining: lockoutStatus.minutes_remaining
+                }
+            });
+        }
+
         const user = await User.findOne({ where: { email } });
 
         // Check if user exists and password matches

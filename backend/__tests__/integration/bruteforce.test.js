@@ -53,7 +53,8 @@ describe('Tests d\'intégration - Protection anti-brute force', () => {
   });
 
   test('Compteur de tentatives décrémente correctement', async () => {
-    const email = 'test@example.com';
+    const email = 'counter-test@example.com';
+    await createTestUser({ email });
 
     // Première tentative échouée
     let response = await request(app)
@@ -75,7 +76,8 @@ describe('Tests d\'intégration - Protection anti-brute force', () => {
   });
 
   test('Réinitialisation du compteur après connexion réussie', async () => {
-    const email = 'test@example.com';
+    const email = 'reset-test@example.com';
+    await createTestUser({ email });
 
     // Faire 2 tentatives échouées
     await request(app)
@@ -89,7 +91,7 @@ describe('Tests d\'intégration - Protection anti-brute force', () => {
     const successResponse = await request(app)
       .post('/api/v1/auth/login')
       .send({
-        email: 'test@example.com',
+        email,
         password: 'ValidP@ssw0rd123'
       });
     expect(successResponse.status).toBe(200);
@@ -107,7 +109,8 @@ describe('Tests d\'intégration - Protection anti-brute force', () => {
   });
 
   test('Le compte reste bloqué pendant toute la durée du lockout', async () => {
-    const email = 'test@example.com';
+    const email = 'lockout-test@example.com';
+    await createTestUser({ email });
 
     // Créer un compte déjà bloqué (locked_until dans le futur)
     const lockoutTime = new Date(Date.now() + 30 * 60 * 1000); // +30 minutes
@@ -117,7 +120,7 @@ describe('Tests d\'intégration - Protection anti-brute force', () => {
     const response = await request(app)
       .post('/api/v1/auth/login')
       .send({
-        email: 'test@example.com',
+        email,
         password: 'ValidP@ssw0rd123'
       });
 
@@ -127,7 +130,8 @@ describe('Tests d\'intégration - Protection anti-brute force', () => {
   });
 
   test('Le blocage expire après le délai configuré', async () => {
-    const email = 'test@example.com';
+    const email = 'expired-lockout@example.com';
+    await createTestUser({ email });
 
     // Créer un compte bloqué qui vient d'expirer
     const expiredLockout = new Date(Date.now() - 1000); // -1 seconde
@@ -137,7 +141,7 @@ describe('Tests d\'intégration - Protection anti-brute force', () => {
     const response = await request(app)
       .post('/api/v1/auth/login')
       .send({
-        email: 'test@example.com',
+        email,
         password: 'ValidP@ssw0rd123'
       });
 
@@ -146,29 +150,33 @@ describe('Tests d\'intégration - Protection anti-brute force', () => {
   });
 
   test('Chaque email a son propre compteur de tentatives', async () => {
-    // Créer un deuxième utilisateur
+    // Créer deux utilisateurs
     await createTestUser({
-      email: 'user2@example.com'
+      email: 'user1-separate@example.com'
+    });
+    await createTestUser({
+      email: 'user2-separate@example.com'
     });
 
     // Faire 3 tentatives échouées pour le premier utilisateur
     for (let i = 0; i < 3; i++) {
       await request(app)
         .post('/api/v1/auth/login')
-        .send({ email: 'test@example.com', password: 'Wrong' });
+        .send({ email: 'user1-separate@example.com', password: 'Wrong' });
     }
 
     // Vérifier que le deuxième utilisateur a toujours 5 tentatives
     const response = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: 'user2@example.com', password: 'Wrong' });
+      .send({ email: 'user2-separate@example.com', password: 'Wrong' });
 
     expect(response.status).toBe(401);
     expect(response.body.detail.attempts_remaining).toBe(4);
   });
 
   test('Le timestamp last_attempt est mis à jour à chaque tentative', async () => {
-    const email = 'test@example.com';
+    const email = 'timestamp-test@example.com';
+    await createTestUser({ email });
 
     // Première tentative
     await request(app)
@@ -193,7 +201,9 @@ describe('Tests d\'intégration - Protection anti-brute force', () => {
   });
 
   test('Protection contre les attaques par dictionnaire', async () => {
-    const email = 'test@example.com';
+    const email = 'dictionary-test@example.com';
+    await createTestUser({ email });
+
     const commonPasswords = [
       'password123',
       '12345678',

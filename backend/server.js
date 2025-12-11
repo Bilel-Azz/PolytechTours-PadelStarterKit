@@ -18,6 +18,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8000;
 
+// Désactiver le header X-Powered-By pour des raisons de sécurité
+app.disable('x-powered-by');
+
 // Middleware
 app.use(cors({
   origin: true, // Allow any origin (reflects the request origin)

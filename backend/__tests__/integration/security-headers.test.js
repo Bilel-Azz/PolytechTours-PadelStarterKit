@@ -11,6 +11,9 @@ const authRoutes = require('../../routes/auth');
 // Créer une application Express de test avec les middlewares de sécurité
 const app = express();
 
+// Désactiver le header X-Powered-By pour des raisons de sécurité
+app.disable('x-powered-by');
+
 // Middleware CORS
 app.use(cors({
   origin: true,
