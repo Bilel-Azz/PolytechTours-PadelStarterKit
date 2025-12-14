@@ -8,14 +8,22 @@ import MainLayout from '../layouts/MainLayout.vue'
 import HomePage from '../views/HomePage.vue'
 import LoginPage from '../views/LoginPage.vue'
 import SignupPage from '../views/SignupPage.vue'
-import PlanningPage from '../views/PlanningPage.vue'
-import MatchsPage from '../views/MatchsPage.vue'
-import ResultsPage from '../views/ResultsPage.vue'
 import AdminDashboard from '../views/admin/AdminDashboard.vue'
 import AdminHome from '../views/admin/AdminHome.vue'
 import PlayersManagement from '../views/admin/PlayersManagement.vue'
 import TeamsManagement from '../views/admin/TeamsManagement.vue'
 import PoolsManagement from '../views/admin/PoolsManagement.vue'
+import MatchesManagement from '../views/admin/MatchesManagement.vue'
+import EventsManagement from '../views/admin/EventsManagement.vue'
+import UsersManagement from '../views/admin/UsersManagement.vue'
+
+// Pages utilisateur
+import UserDashboard from '../views/UserDashboard.vue'
+import MatchsPage from '../views/MatchsPage.vue'
+import ResultsPage from '../views/ResultsPage.vue'
+import ProfilePage from '../views/ProfilePage.vue'
+import RankingsPage from '../views/RankingsPage.vue'
+import CalendarPage from '../views/CalendarPage.vue'
 
 const routes = [
   // Page d'accueil publique (sans layout)
@@ -44,8 +52,18 @@ const routes = [
   {
     path: '/user',
     component: MainLayout,
-    meta: { requiresAuth: true, requiresUser: true },
+    meta: { requiresAuth: true },
     children: [
+      {
+        path: '',
+        redirect: '/user/dashboard'
+      },
+      {
+        path: 'dashboard',
+        name: 'user-dashboard',
+        component: UserDashboard,
+        meta: { title: 'Tableau de bord' }
+      },
       {
         path: 'matches',
         name: 'user-matches',
@@ -57,6 +75,24 @@ const routes = [
         name: 'user-results',
         component: ResultsPage,
         meta: { title: 'Mes Résultats' }
+      },
+      {
+        path: 'profile',
+        name: 'user-profile',
+        component: ProfilePage,
+        meta: { title: 'Mon Profil' }
+      },
+      {
+        path: 'rankings',
+        name: 'user-rankings',
+        component: RankingsPage,
+        meta: { title: 'Classement' }
+      },
+      {
+        path: 'calendar',
+        name: 'user-calendar',
+        component: CalendarPage,
+        meta: { title: 'Planning' }
       }
     ]
   },
@@ -73,11 +109,6 @@ const routes = [
         component: AdminHome
       },
       {
-        path: 'planning',
-        name: 'admin-planning',
-        component: PlanningPage
-      },
-      {
         path: 'players',
         name: 'admin-players',
         component: PlayersManagement
@@ -91,8 +122,37 @@ const routes = [
         path: 'pools',
         name: 'admin-pools',
         component: PoolsManagement
+      },
+      {
+        path: 'matches',
+        name: 'admin-matches',
+        component: MatchesManagement
+      },
+      {
+        path: 'events',
+        name: 'admin-events',
+        component: EventsManagement
+      },
+      {
+        path: 'users',
+        name: 'admin-users',
+        component: UsersManagement
       }
     ]
+  },
+
+  // Redirect legacy routes
+  {
+    path: '/planning',
+    redirect: '/user/calendar'
+  },
+  {
+    path: '/matchs',
+    redirect: '/user/matches'
+  },
+  {
+    path: '/results',
+    redirect: '/user/results'
   }
 ]
 
@@ -117,12 +177,7 @@ router.beforeEach((to, from, next) => {
 
   // Si la route nécessite un rôle admin
   if (to.meta.requiresAdmin && !authStore.isAdmin) {
-    return next('/user/matches')
-  }
-
-  // Si la route nécessite un rôle utilisateur (pas admin)
-  if (to.meta.requiresUser && authStore.isAdmin) {
-    return next('/admin')
+    return next('/user/dashboard')
   }
 
   // Si l'utilisateur est connecté et essaie d'aller sur login/signup
@@ -130,7 +185,7 @@ router.beforeEach((to, from, next) => {
     if (authStore.isAdmin) {
       return next('/admin')
     } else {
-      return next('/user/matches')
+      return next('/user/dashboard')
     }
   }
 

@@ -119,9 +119,9 @@ const handleLogin = async () => {
         <Alert class="mt-6 flex items-start gap-3">
           <Info class="h-5 w-5 mt-0.5 text-primary" />
           <div class="flex-1">
-            <p class="text-sm font-medium mb-1">Compte de test</p>
+            <p class="text-sm font-medium mb-1">Compte Admin</p>
             <p class="text-xs text-muted-foreground">
-              admin@padel.com / Admin@2025!
+              admin@corpopadel.fr / AdminP@ss123
             </p>
           </div>
         </Alert>

@@ -7,6 +7,7 @@ import Card from '../components/ui/card.vue'
 import Input from '../components/ui/input.vue'
 import Label from '../components/ui/label.vue'
 import Alert from '../components/ui/alert.vue'
+import { authAPI } from '../services/api'
 
 const router = useRouter()
 
@@ -40,20 +41,31 @@ const handleSignup = async () => {
     return
   }
 
-  // TODO: Appel API quand le backend sera prêt
-  // try {
-  //   await authAPI.signup(formData.value)
-  //   successMessage.value = 'Compte créé avec succès ! Redirection...'
-  //   setTimeout(() => router.push('/login'), 2000)
-  // } catch (error) {
-  //   errorMessage.value = error.response?.data?.message || 'Erreur lors de la création du compte'
-  // }
+  try {
+    const response = await authAPI.register(formData.value.email, formData.value.password)
 
-  // Simuler l'attente pour l'instant
-  setTimeout(() => {
-    successMessage.value = 'Fonctionnalité en cours de développement. Veuillez contacter un administrateur pour créer votre compte.'
+    // Stocker le token et les infos utilisateur
+    localStorage.setItem('token', response.data.access_token)
+    localStorage.setItem('user', JSON.stringify(response.data.user))
+
+    successMessage.value = 'Compte créé avec succès ! Redirection...'
+
+    // Rediriger vers la page appropriée selon le rôle
+    setTimeout(() => {
+      if (response.data.user.role === 'ADMINISTRATEUR') {
+        router.push('/admin')
+      } else {
+        router.push('/user/matches')
+      }
+    }, 1500)
+  } catch (error) {
+    if (error.response?.data?.detail) {
+      errorMessage.value = error.response.data.detail
+    } else {
+      errorMessage.value = 'Erreur lors de la création du compte'
+    }
     loading.value = false
-  }, 1000)
+  }
 }
 </script>
 

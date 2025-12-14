@@ -262,6 +262,7 @@ router.delete(
     validate(teamIdSchema, 'params'),
     asyncHandler(async (req, res) => {
         const { id } = req.params;
+        const { force } = req.query; // ?force=true pour supprimer même avec des matchs
 
         const team = await Team.findByPk(id, {
             include: [
@@ -277,14 +278,22 @@ router.delete(
         // Check if team has any matches
         const hasMatches = team.matchesAsTeam1?.length > 0 || team.matchesAsTeam2?.length > 0;
 
-        if (hasMatches) {
+        if (hasMatches && force !== 'true') {
             return res.status(400).json({
                 success: false,
                 error: {
                     code: 'TEAM_HAS_MATCHES',
-                    message: 'L\'équipe ne peut pas être supprimée car elle a déjà joué des matchs',
+                    message: 'L\'équipe a joué des matchs. Utilisez ?force=true pour supprimer quand même (les matchs seront conservés)',
+                    matchCount: (team.matchesAsTeam1?.length || 0) + (team.matchesAsTeam2?.length || 0)
                 },
             });
+        }
+
+        // Si force=true, mettre à NULL les références dans les matchs avant suppression
+        if (hasMatches && force === 'true') {
+            const Match = require('../models').Match;
+            await Match.update({ team1Id: null }, { where: { team1Id: id } });
+            await Match.update({ team2Id: null }, { where: { team2Id: id } });
         }
 
         await team.destroy();

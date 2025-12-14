@@ -29,8 +29,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expiré ou invalide
+    // Ne pas intercepter les erreurs 401 sur les routes d'authentification
+    // car ce sont des erreurs de login normales (mauvais mot de passe)
+    const isAuthRoute = error.config?.url?.includes('/auth/login') ||
+                        error.config?.url?.includes('/auth/register')
+
+    if (error.response?.status === 401 && !isAuthRoute) {
+      // Token expiré ou invalide (mais pas une erreur de login)
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.location.href = '/login'
@@ -44,6 +49,8 @@ export const authAPI = {
   login: (email, password) =>
     api.post('/auth/login', { email, password }),
 
+  register: (email, password) =>
+    api.post('/auth/register', { email, password }),
 
   logout: () =>
     api.post('/auth/logout'),
@@ -88,8 +95,8 @@ export const teamsAPI = {
   update: (id, teamData) =>
     api.put(`/teams/${id}`, teamData),
 
-  delete: (id) =>
-    api.delete(`/teams/${id}`)
+  delete: (id, force = false) =>
+    api.delete(`/teams/${id}${force ? '?force=true' : ''}`)
 }
 
 // API des événements
@@ -142,8 +149,8 @@ export const poolsAPI = {
   update: (id, poolData) =>
     api.put(`/pools/${id}`, poolData),
 
-  delete: (id) =>
-    api.delete(`/pools/${id}`)
+  delete: (id, force = false) =>
+    api.delete(`/pools/${id}${force ? '?force=true' : ''}`)
 }
 
 // API des résultats
@@ -171,6 +178,31 @@ export const profileAPI = {
 
   update: (profileData) =>
     api.put('/profile', profileData)
+}
+
+// API Admin - Gestion des utilisateurs
+export const adminAPI = {
+  // Users
+  getUsers: (params = {}) =>
+    api.get('/admin/users', { params }),
+
+  getUser: (id) =>
+    api.get(`/admin/users/${id}`),
+
+  createUser: (userData) =>
+    api.post('/admin/users', userData),
+
+  updateUser: (id, userData) =>
+    api.put(`/admin/users/${id}`, userData),
+
+  deleteUser: (id) =>
+    api.delete(`/admin/users/${id}`),
+
+  unlockUser: (id) =>
+    api.post(`/admin/users/${id}/unlock`),
+
+  resetPassword: (id) =>
+    api.post(`/admin/accounts/${id}/reset-password`)
 }
 
 export default api

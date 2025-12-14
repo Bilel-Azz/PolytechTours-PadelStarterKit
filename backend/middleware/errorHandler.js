@@ -50,15 +50,17 @@ class ConflictError extends AppError {
  * Global Error Handler Middleware
  */
 const errorHandler = (err, req, res, next) => {
-  // Log error for debugging
-  console.error('Error:', {
-    message: err.message,
-    stack: err.stack,
-    statusCode: err.statusCode,
-    errorCode: err.errorCode,
-    path: req.path,
-    method: req.method,
-  });
+  // Log error for debugging (only in non-test environment)
+  if (process.env.NODE_ENV !== 'test') {
+    console.error('Error:', {
+      message: err.message,
+      stack: err.stack,
+      statusCode: err.statusCode,
+      errorCode: err.errorCode,
+      path: req.path,
+      method: req.method,
+    });
+  }
 
   // Default to 500 server error
   const statusCode = err.statusCode || 500;

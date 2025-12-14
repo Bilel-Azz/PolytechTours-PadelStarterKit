@@ -278,12 +278,14 @@ router.delete(
             }
         }
 
-        if (hasMatches) {
+        const { force } = req.query; // ?force=true pour supprimer même avec des matchs
+
+        if (hasMatches && force !== 'true') {
             return res.status(400).json({
                 success: false,
                 error: {
                     code: 'POOL_HAS_MATCHES',
-                    message: 'La poule ne peut pas être supprimée car elle contient des équipes ayant joué des matchs',
+                    message: 'La poule contient des équipes ayant joué des matchs. Utilisez ?force=true pour supprimer quand même',
                 },
             });
         }

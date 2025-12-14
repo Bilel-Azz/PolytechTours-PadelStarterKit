@@ -1,6 +1,6 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { Plus, Edit, Trash, Users as UsersIcon } from 'lucide-vue-next'
+import { ref, onMounted, computed, watch } from 'vue'
+import { Plus, Edit, Trash, Users as UsersIcon, Search, Building2 } from 'lucide-vue-next'
 import Card from '@/components/ui/card.vue'
 import Button from '@/components/ui/button.vue'
 import Label from '@/components/ui/label.vue'
@@ -25,6 +25,8 @@ const pools = ref([])
 const loading = ref(false)
 const showDialog = ref(false)
 const editingTeam = ref(null)
+const companySearch = ref('')
+const showCompanyDropdown = ref(false)
 
 const formData = ref({
   company: '',
@@ -33,13 +35,90 @@ const formData = ref({
   poolId: null
 })
 
-// Options pour les selects
+// Liste des entreprises uniques extraites des joueurs
+const uniqueCompanies = computed(() => {
+  const companies = [...new Set(players.value.map(p => p.company).filter(Boolean))]
+  return companies.sort()
+})
+
+// Entreprises filtrées par la recherche
+const filteredCompanies = computed(() => {
+  if (!companySearch.value) return uniqueCompanies.value
+  const search = companySearch.value.toLowerCase()
+  return uniqueCompanies.value.filter(c => c.toLowerCase().includes(search))
+})
+
+// Joueurs filtrés par l'entreprise sélectionnée (et non déjà dans une équipe)
+const playersInTeams = computed(() => {
+  const playerIds = new Set()
+  teams.value.forEach(team => {
+    if (team.player1?.id) playerIds.add(team.player1.id)
+    if (team.player2?.id) playerIds.add(team.player2.id)
+  })
+  // En mode édition, exclure les joueurs de l'équipe actuelle
+  if (editingTeam.value) {
+    if (editingTeam.value.player1?.id) playerIds.delete(editingTeam.value.player1.id)
+    if (editingTeam.value.player2?.id) playerIds.delete(editingTeam.value.player2.id)
+  }
+  return playerIds
+})
+
+const availablePlayersForCompany = computed(() => {
+  if (!formData.value.company) return []
+  return players.value.filter(p =>
+    p.company === formData.value.company &&
+    !playersInTeams.value.has(p.id)
+  )
+})
+
+// Options pour les selects de joueurs (filtrés par entreprise)
 const playerOptions = computed(() =>
-  players.value.map(p => ({
+  availablePlayersForCompany.value.map(p => ({
     value: p.id,
-    label: `${p.firstName} ${p.lastName} (${p.company})`
+    label: `${p.firstName} ${p.lastName}`
   }))
 )
+
+// Joueurs disponibles pour joueur 2 (exclure joueur 1 sélectionné)
+const player2Options = computed(() =>
+  playerOptions.value.filter(p => p.value !== formData.value.player1Id)
+)
+
+// Réinitialiser les joueurs quand l'entreprise change
+watch(() => formData.value.company, () => {
+  formData.value.player1Id = null
+  formData.value.player2Id = null
+})
+
+// Sélectionner une entreprise
+const selectCompany = (company) => {
+  formData.value.company = company
+  companySearch.value = company
+  showCompanyDropdown.value = false
+}
+
+// Gérer le focus sur le champ entreprise
+const onCompanyFocus = () => {
+  showCompanyDropdown.value = true
+  companySearch.value = formData.value.company
+}
+
+const onCompanyBlur = () => {
+  // Délai pour permettre le clic sur une option
+  setTimeout(() => {
+    showCompanyDropdown.value = false
+    // Si la recherche ne correspond pas à une entreprise existante, la garder quand même
+    if (companySearch.value && !uniqueCompanies.value.includes(companySearch.value)) {
+      formData.value.company = companySearch.value
+    }
+  }, 200)
+}
+
+const onCompanyInput = (e) => {
+  companySearch.value = e.target.value
+  formData.value.company = e.target.value
+  showCompanyDropdown.value = true
+}
 
 const poolOptions = computed(() => [
   { value: null, label: 'Aucune poule' },
@@ -80,6 +159,7 @@ const openDialog = (team = null) => {
       player2Id: team.player2?.id || null,
       poolId: team.pool?.id || null
     }
+    companySearch.value = team.company
   } else {
     editingTeam.value = null
     formData.value = {
@@ -88,7 +168,9 @@ const openDialog = (team = null) => {
       player2Id: null,
       poolId: null
     }
+    companySearch.value = ''
   }
+  showCompanyDropdown.value = false
   showDialog.value = true
 }
 
@@ -134,19 +216,37 @@ const saveTeam = async () => {
 }
 
 // Supprimer une équipe
-const deleteTeam = async (team) => {
-  if (!confirm(`Êtes-vous sûr de vouloir supprimer l'équipe ${team.company} ?`)) {
+const deleteTeam = async (team, force = false) => {
+  const message = force
+    ? `Êtes-vous sûr de vouloir FORCER la suppression de l'équipe ${team.company} ? Les matchs seront conservés mais l'équipe sera supprimée.`
+    : `Êtes-vous sûr de vouloir supprimer l'équipe ${team.company} ?`
+
+  if (!confirm(message)) {
     return
   }
 
   try {
     loading.value = true
-    await teamsAPI.delete(team.id)
+    await teamsAPI.delete(team.id, force)
     toast.success('Succès', 'Équipe supprimée avec succès')
     await loadData()
   } catch (error) {
     console.error('Erreur lors de la suppression:', error)
-    toast.error('Erreur', error.response?.data?.message || 'Impossible de supprimer l\'équipe')
+    const errorData = error.response?.data?.error
+
+    // Si l'équipe a des matchs, proposer la suppression forcée
+    if (errorData?.code === 'TEAM_HAS_MATCHES') {
+      const forceDelete = confirm(
+        `Cette équipe a joué ${errorData.matchCount || 'des'} match(s).\n\n` +
+        `Voulez-vous quand même la supprimer ?\n` +
+        `(Les matchs seront conservés dans l'historique)`
+      )
+      if (forceDelete) {
+        await deleteTeam(team, true)
+      }
+    } else {
+      toast.error('Erreur', errorData?.message || 'Impossible de supprimer l\'équipe')
+    }
   } finally {
     loading.value = false
   }
@@ -182,28 +282,75 @@ onMounted(() => {
           </DialogHeader>
 
           <div class="space-y-4 py-4">
+            <!-- Sélecteur d'entreprise avec recherche -->
             <div class="space-y-2">
               <Label for="company">Entreprise *</Label>
-              <Input id="company" v-model="formData.company" placeholder="Tech Corp" required />
+              <div class="relative">
+                <div class="relative">
+                  <Building2 class="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <input
+                    id="company"
+                    type="text"
+                    :value="companySearch"
+                    @input="onCompanyInput"
+                    @focus="onCompanyFocus"
+                    @blur="onCompanyBlur"
+                    placeholder="Rechercher une entreprise..."
+                    class="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                </div>
+                <!-- Dropdown des entreprises -->
+                <div
+                  v-if="showCompanyDropdown && filteredCompanies.length > 0"
+                  class="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-48 overflow-auto"
+                >
+                  <div
+                    v-for="company in filteredCompanies"
+                    :key="company"
+                    @mousedown.prevent="selectCompany(company)"
+                    class="px-3 py-2 cursor-pointer hover:bg-accent hover:text-accent-foreground text-sm"
+                  >
+                    {{ company }}
+                  </div>
+                </div>
+                <!-- Message si aucune entreprise trouvée -->
+                <div
+                  v-if="showCompanyDropdown && companySearch && filteredCompanies.length === 0"
+                  class="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg p-3"
+                >
+                  <p class="text-sm text-muted-foreground">Aucune entreprise trouvée</p>
+                  <p class="text-xs text-muted-foreground mt-1">Une nouvelle entreprise sera créée</p>
+                </div>
+              </div>
+              <p v-if="formData.company && availablePlayersForCompany.length === 0" class="text-sm text-amber-600">
+                Aucun joueur disponible pour cette entreprise
+              </p>
+              <p v-else-if="formData.company" class="text-sm text-muted-foreground">
+                {{ availablePlayersForCompany.length }} joueur(s) disponible(s)
+              </p>
             </div>
 
+            <!-- Joueur 1 - filtré par entreprise -->
             <div class="space-y-2">
               <Label for="player1">Joueur 1 *</Label>
               <Select
                 id="player1"
                 v-model="formData.player1Id"
                 :options="playerOptions"
-                placeholder="Sélectionner le joueur 1"
+                :placeholder="formData.company ? 'Sélectionner le joueur 1' : 'Sélectionnez d\'abord une entreprise'"
+                :disabled="!formData.company || playerOptions.length === 0"
               />
             </div>
 
+            <!-- Joueur 2 - filtré par entreprise et excluant joueur 1 -->
             <div class="space-y-2">
               <Label for="player2">Joueur 2 *</Label>
               <Select
                 id="player2"
                 v-model="formData.player2Id"
-                :options="playerOptions"
-                placeholder="Sélectionner le joueur 2"
+                :options="player2Options"
+                :placeholder="formData.player1Id ? 'Sélectionner le joueur 2' : 'Sélectionnez d\'abord le joueur 1'"
+                :disabled="!formData.player1Id || player2Options.length === 0"
               />
             </div>
 

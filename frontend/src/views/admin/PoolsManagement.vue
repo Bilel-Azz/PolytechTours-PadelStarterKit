@@ -87,19 +87,36 @@ const savePool = async () => {
 }
 
 // Supprimer une poule
-const deletePool = async (pool) => {
-  if (!confirm(`Êtes-vous sûr de vouloir supprimer la poule "${pool.name}" ?`)) {
+const deletePool = async (pool, force = false) => {
+  const message = force
+    ? `Êtes-vous sûr de vouloir FORCER la suppression de la poule "${pool.name}" ?`
+    : `Êtes-vous sûr de vouloir supprimer la poule "${pool.name}" ?`
+
+  if (!confirm(message)) {
     return
   }
 
   try {
     loading.value = true
-    await poolsAPI.delete(pool.id)
+    await poolsAPI.delete(pool.id, force)
     toast.success('Succès', 'Poule supprimée avec succès')
     await loadPools()
   } catch (error) {
     console.error('Erreur lors de la suppression:', error)
-    toast.error('Erreur', error.response?.data?.message || 'Impossible de supprimer la poule')
+    const errorData = error.response?.data?.error
+
+    if (errorData?.code === 'POOL_HAS_MATCHES') {
+      const forceDelete = confirm(
+        `Cette poule contient des équipes ayant joué des matchs.\n\n` +
+        `Voulez-vous quand même la supprimer ?\n` +
+        `(Les équipes seront retirées de la poule mais conservées)`
+      )
+      if (forceDelete) {
+        await deletePool(pool, true)
+      }
+    } else {
+      toast.error('Erreur', errorData?.message || 'Impossible de supprimer la poule')
+    }
   } finally {
     loading.value = false
   }

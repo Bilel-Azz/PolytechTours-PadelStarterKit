@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Home, Users, UserCheck, Shield, Calendar, ArrowLeft, ChevronLeft, Menu, X, LogOut } from 'lucide-vue-next'
+import { Home, Users, UserCheck, Shield, Calendar, ArrowLeft, ChevronLeft, Menu, X, LogOut, Trophy, CalendarDays, UserCog } from 'lucide-vue-next'
 import Button from '@/components/ui/button.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -13,10 +13,12 @@ const isSidebarOpen = ref(true)
 
 const menuItems = [
   { icon: Home, label: 'Vue d\'ensemble', path: '/admin' },
-  { icon: Calendar, label: 'Planning', path: '/admin/planning' },
+  { icon: CalendarDays, label: 'Événements', path: '/admin/events' },
+  { icon: Trophy, label: 'Matchs', path: '/admin/matches' },
   { icon: Users, label: 'Joueurs', path: '/admin/players' },
   { icon: UserCheck, label: 'Équipes', path: '/admin/teams' },
   { icon: Shield, label: 'Poules', path: '/admin/pools' },
+  { icon: UserCog, label: 'Utilisateurs', path: '/admin/users' },
 ]
 
 const toggleSidebar = () => {

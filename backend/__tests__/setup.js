@@ -23,7 +23,7 @@ afterAll(async () => {
 // Nettoyer la base de données entre chaque test
 afterEach(async () => {
   // Supprimer toutes les données des tables avec force pour éviter les contraintes
-  const models = Object.values(sequelize.models);
+  const models = [...Object.values(sequelize.models)]; // Copie pour ne pas modifier l'original
 
   // Nettoyer dans l'ordre inverse pour respecter les foreign keys
   for (const model of models.reverse()) {
@@ -37,7 +37,7 @@ afterEach(async () => {
       });
     } catch (error) {
       // Ignorer les erreurs de nettoyage (table déjà vide)
-      console.debug(`Cleanup skipped for ${model.name}:`, error.message);
+      // console.debug(`Cleanup skipped for ${model.name}:`, error.message);
     }
   }
 });
