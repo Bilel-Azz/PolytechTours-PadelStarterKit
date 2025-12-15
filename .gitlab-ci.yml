@@ -9,7 +9,6 @@ stages:
 # Variables globales
 variables:
   NODE_VERSION: "18"
-  PYTHON_VERSION: "3.11"
   CACHE_COMPRESSION_LEVEL: "fast"
 
 # Template de cache pour Node.js
@@ -23,16 +22,7 @@ variables:
       - .npm/
     policy: pull
 
-# Template de cache pour Python
-.python_cache: &python_cache
-  cache:
-    key:
-      files:
-        - requirements.txt
-    paths:
-      - .venv/
-      - .pip-cache/
-    policy: pull
+
 
 # ================================
 # 🔧 INSTALLATION DES DÉPENDANCES
@@ -86,31 +76,7 @@ install:frontend:
       - frontend/**/*
       - .gitlab-ci.yml
 
-install:backend:python:
-  stage: install
-  image: python:${PYTHON_VERSION}-slim
-  before_script:
-    - cd backend_python
-  script:
-    - python -m venv .venv
-    - source .venv/bin/activate
-    - pip install --cache-dir=.pip-cache -r requirements.txt
-  cache:
-    key:
-      files:
-        - backend_python/requirements.txt
-    paths:
-      - backend_python/.venv/
-      - backend_python/.pip-cache/
-    policy: pull-push
-  artifacts:
-    paths:
-      - backend_python/.venv/
-    expire_in: 1 hour
-  only:
-    changes:
-      - backend_python/**/*
-      - .gitlab-ci.yml
+
 
 # ================================
 # 🧪 TESTS
@@ -232,37 +198,7 @@ test:frontend:e2e:
       - .gitlab-ci.yml
   allow_failure: true
 
-test:backend:python:
-  stage: test
-  image: python:${PYTHON_VERSION}-slim
-  needs:
-    - install:backend:python
-  dependencies:
-    - install:backend:python
-  before_script:
-    - cd backend_python
-    - source .venv/bin/activate
-  script:
-    # Si vous avez pytest configuré
-    - |
-      if [ -f "pytest.ini" ] || [ -f "tests/__init__.py" ]; then
-        pip install pytest pytest-cov
-        pytest --cov=app --cov-report=xml --cov-report=term
-      else
-        echo "Pas de tests Python configurés pour le moment"
-      fi
-  artifacts:
-    when: always
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: backend_python/coverage.xml
-    expire_in: 30 days
-  only:
-    changes:
-      - backend_python/**/*
-      - .gitlab-ci.yml
-  allow_failure: true
+
 
 # ================================
 # 🏗️ BUILD
