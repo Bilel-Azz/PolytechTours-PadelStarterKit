@@ -173,22 +173,32 @@ test:frontend:e2e:
   stage: test
   image: cypress/browsers:node18.12.0-chrome107
   needs:
-    - install:frontend
-    - install:backend:node
+    - job: install:frontend
+      optional: true
+    - job: install:backend:node
+      optional: true
   dependencies:
     - install:frontend
     - install:backend:node
   before_script:
+    # Installer les dépendances backend si nécessaire
+    - cd backend
+    - |
+      if [ ! -d "node_modules" ]; then
+        echo "Installing backend dependencies..."
+        npm ci --cache .npm --prefer-offline
+      else
+        echo "Backend dependencies already installed"
+      fi
     # Créer un fichier .env pour le backend
     - |
-      cat > backend/.env <<EOF
+      cat > .env <<EOF
       PORT=8000
       DATABASE_URL=sqlite:///padel_corpo.db
       SECRET_KEY=test_secret_key_for_ci_cd
       ALLOWED_ORIGINS=http://localhost:5173
       EOF
     # Démarrer le backend en arrière-plan
-    - cd backend
     - node server.js > backend.log 2>&1 &
     - BACKEND_PID=$!
     - echo "Backend started with PID $BACKEND_PID"
@@ -203,7 +213,15 @@ test:frontend:e2e:
         echo "Waiting for backend... ($i/30)"
         sleep 1
       done
+    # Installer les dépendances frontend si nécessaire
     - cd ../frontend
+    - |
+      if [ ! -d "node_modules" ]; then
+        echo "Installing frontend dependencies..."
+        npm ci --cache .npm --prefer-offline
+      else
+        echo "Frontend dependencies already installed"
+      fi
   script:
     # Installation de Cypress si nécessaire
     - npx cypress install
