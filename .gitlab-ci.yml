@@ -233,14 +233,12 @@ test:summary:
   stage: test
   image: alpine:latest
   needs:
-    - test:backend:node:coverage
+    - job: test:backend:node:coverage
+      optional: true
+    - job: test:frontend:e2e
+      optional: true
   script:
     - echo "Tests terminés avec succès ✅"
     - echo "Consultez les rapports de couverture dans les artifacts"
   when: on_success
-  only:
-    changes:
-      - backend/**/*
-      - frontend/**/*
-      - backend_python/**/*
-      - .gitlab-ci.yml
+
