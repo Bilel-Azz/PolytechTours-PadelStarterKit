@@ -171,7 +171,7 @@ test:frontend:unit:
 
 test:frontend:e2e:
   stage: test
-  image: cypress/browsers:node18.12.0-chrome107
+  image: cypress/included:13.6.0  # Debian-based image with Cypress pre-installed
   needs:
     - job: install:frontend
       optional: true
@@ -181,6 +181,8 @@ test:frontend:e2e:
     - install:frontend
     - install:backend:node
   before_script:
+    # Installer les dépendances système pour sqlite3
+    - apt-get update && apt-get install -y python3 make g++ || true
     # Installer les dépendances backend si nécessaire
     - cd backend
     - |
@@ -189,6 +191,8 @@ test:frontend:e2e:
         npm ci --cache .npm --prefer-offline
       else
         echo "Backend dependencies already installed"
+        # Rebuild sqlite3 pour compatibilité avec l'environnement actuel
+        npm rebuild sqlite3 || true
       fi
     # Créer un fichier .env pour le backend
     - |
@@ -198,6 +202,9 @@ test:frontend:e2e:
       SECRET_KEY=test_secret_key_for_ci_cd
       ALLOWED_ORIGINS=http://localhost:5173
       EOF
+    # Initialiser la base de données avec des données de test
+    - echo "Seeding database..."
+    - node scripts/seed_complete.js || echo "Seed failed, continuing anyway..."
     # Démarrer le backend en arrière-plan
     - node server.js > backend.log 2>&1 &
     - BACKEND_PID=$!
@@ -223,8 +230,6 @@ test:frontend:e2e:
         echo "Frontend dependencies already installed"
       fi
   script:
-    # Installation de Cypress si nécessaire
-    - npx cypress install
     # Démarrage du serveur de dev frontend en arrière-plan
     - npm run dev > vite.log 2>&1 &
     - FRONTEND_PID=$!
@@ -240,8 +245,8 @@ test:frontend:e2e:
         echo "Waiting for frontend... ($i/30)"
         sleep 1
       done
-    # Exécution des tests Cypress
-    - npx cypress run --browser chrome
+    # Exécution des tests Cypress (cypress est déjà installé dans l'image)
+    - cypress run
   after_script:
     # Afficher les logs en cas d'erreur
     - echo "=== Backend logs ==="
