@@ -1,10 +1,6 @@
 describe('Navigation', () => {
   beforeEach(() => {
     cy.clearLocalStorage()
-    // Réinitialiser les tentatives échouées
-    cy.resetFailedAttempts()
-    // Configurer les mocks API
-    cy.setupApiMocks()
   })
 
   it('Visiteur ne peut accéder qu\'à l\'accueil', () => {
@@ -49,6 +45,9 @@ describe('Navigation', () => {
     cy.get('input[type="password"]').type('Admin123!')
     cy.get('button[type="submit"]').click()
 
+    // Attendre la redirection
+    cy.url().should('include', '/user/dashboard')
+
     // Vérifier que le menu utilisateur est visible avec l'email admin
     cy.get('[data-testid="user-menu-trigger"]').should('be.visible')
     cy.contains('admin@padel.com').should('be.visible')
@@ -58,5 +57,9 @@ describe('Navigation', () => {
       const user = JSON.parse(win.localStorage.getItem('user'))
       expect(user.role).to.equal('ADMINISTRATEUR')
     })
+
+    // Vérifier qu'on peut accéder à la page admin
+    cy.visit('/admin')
+    cy.url().should('include', '/admin')
   })
 })

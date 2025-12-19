@@ -4,7 +4,7 @@
 // ============================================
 
 const { sequelize, User, Player, Team, Pool, Event, Match } = require('../models');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 // Colors for console output
 const colors = {
