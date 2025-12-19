@@ -141,18 +141,26 @@ const routes = [
     ]
   },
 
-  // Redirect legacy routes
+  // Redirect legacy routes (avec protection auth)
   {
     path: '/planning',
-    redirect: '/user/calendar'
+    redirect: '/user/calendar',
+    meta: { requiresAuth: true }
   },
   {
-    path: '/matchs',
-    redirect: '/user/matches'
+    path: '/matches',
+    redirect: '/user/matches',
+    meta: { requiresAuth: true }
   },
   {
     path: '/results',
-    redirect: '/user/results'
+    redirect: '/user/results',
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/profile',
+    redirect: '/user/profile',
+    meta: { requiresAuth: true }
   }
 ]
 

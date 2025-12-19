@@ -28,7 +28,7 @@ const handleLogin = async () => {
   const result = await authStore.login(email.value, password.value)
 
   if (result.success) {
-    await router.push('/')
+    await router.push('/user/dashboard')
   } else {
     errorMessage.value = result.error || 'Erreur de connexion'
     attemptsRemaining.value = result.attemptsRemaining ?? null
@@ -121,7 +121,7 @@ const handleLogin = async () => {
           <div class="flex-1">
             <p class="text-sm font-medium mb-1">Compte Admin</p>
             <p class="text-xs text-muted-foreground">
-              admin@corpopadel.fr / AdminP@ss123
+              admin@padel.com / Admin123!
             </p>
           </div>
         </Alert>
