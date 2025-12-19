@@ -21,10 +21,12 @@ const PORT = process.env.PORT || 8000;
 // Désactiver le header X-Powered-By pour des raisons de sécurité
 app.disable('x-powered-by');
 
-// Middleware
+// Middleware - CORS configuration to allow all origins
 app.use(cors({
-  origin: true, // Allow any origin (reflects the request origin)
-  credentials: true
+  origin: '*', // Allow all origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: false // Set to false when using origin: '*'
 }));
 app.use(express.json());
 
