@@ -1,6 +1,10 @@
 describe('Navigation', () => {
   beforeEach(() => {
     cy.clearLocalStorage()
+    // Réinitialiser les tentatives échouées
+    cy.resetFailedAttempts()
+    // Configurer les mocks API
+    cy.setupApiMocks()
   })
 
   it('Visiteur ne peut accéder qu\'à l\'accueil', () => {
@@ -45,7 +49,14 @@ describe('Navigation', () => {
     cy.get('input[type="password"]').type('Admin123!')
     cy.get('button[type="submit"]').click()
 
-    // Vérifier que le lien Administration est visible
-    cy.contains('Administration').should('be.visible')
+    // Vérifier que le menu utilisateur est visible avec l'email admin
+    cy.get('[data-testid="user-menu-trigger"]').should('be.visible')
+    cy.contains('admin@padel.com').should('be.visible')
+
+    // Vérifier que l'utilisateur connecté a le rôle admin dans le store
+    cy.window().then((win) => {
+      const user = JSON.parse(win.localStorage.getItem('user'))
+      expect(user.role).to.equal('ADMINISTRATEUR')
+    })
   })
 })

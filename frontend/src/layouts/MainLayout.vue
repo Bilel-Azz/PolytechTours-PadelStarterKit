@@ -83,7 +83,7 @@ const getInitials = (email) => {
           <!-- User Menu Desktop -->
           <div class="hidden md:block">
             <DropdownMenu>
-              <DropdownMenuTrigger>
+              <DropdownMenuTrigger data-testid="user-menu-trigger">
                 <Button variant="ghost" class="gap-2 pl-2 pr-3">
                   <Avatar class="h-8 w-8 bg-primary/10">
                     <span class="text-xs font-medium">{{ getInitials(authStore.user?.email) }}</span>
@@ -106,12 +106,12 @@ const getInitials = (email) => {
                   <User class="h-4 w-4 mr-2" />
                   Mon Profil
                 </DropdownMenuItem>
-                <DropdownMenuItem v-if="authStore.isAdmin" @click="router.push('/admin')">
+                <DropdownMenuItem v-if="authStore.isAdmin" @click="router.push('/admin')" data-testid="admin-menu-item">
                   <BarChart3 class="h-4 w-4 mr-2" />
                   Administration
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem @click="handleLogout" class="text-destructive focus:text-destructive">
+                <DropdownMenuItem @click="handleLogout" class="text-destructive focus:text-destructive" data-testid="logout-menu-item">
                   <LogOut class="h-4 w-4 mr-2" />
                   Déconnexion
                 </DropdownMenuItem>
