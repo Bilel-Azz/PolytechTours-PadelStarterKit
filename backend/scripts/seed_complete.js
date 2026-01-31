@@ -114,27 +114,15 @@ async function seedDatabase() {
         await sequelize.authenticate();
         log('Connexion à la base de données établie.', 'success');
 
-        // Sync database models first
+        // Sync database models first (force: true to recreate tables from scratch)
         separator();
         log('🔧 Synchronisation des modèles...', 'info');
-        await sequelize.sync({ force: false, alter: true });
-        log('     ✅ Modèles synchronisés', 'success');
+        await sequelize.sync({ force: true });
+        log('     ✅ Modèles synchronisés (tables recréées)', 'success');
         separator();
 
-        // Reset database
-        separator();
-        log('🗑️  Nettoyage de la base de données...', 'warning');
-        separator();
-
-        await Match.destroy({ where: {}, force: true });
-        await Event.destroy({ where: {}, force: true });
-        await Team.destroy({ where: {}, force: true });
-        await Pool.destroy({ where: {}, force: true });
-        await Player.destroy({ where: {}, force: true });
-        await Company.destroy({ where: {}, force: true });
-        await User.destroy({ where: { role: 'JOUEUR' }, force: true });
-
-        log('     ✅ Base de données nettoyée', 'success');
+        // Note: Tables already recreated with sync({ force: true })
+        log('✅ Base de données prête (tables recréées)', 'success');
 
         // ═══════════════════════════════════════════════════════════════
         // STEP 1: CREATE ADMIN USER
@@ -143,19 +131,14 @@ async function seedDatabase() {
         log('\n👤 ETAPE 1: Création du compte admin', 'header');
         separator();
 
-        const existingAdmin = await User.findOne({ where: { email: 'admin@padel.com' } });
-        if (!existingAdmin) {
-            const hashedPassword = await bcrypt.hash('Admin123!', 10);
-            await User.create({
-                email: 'admin@padel.com',
-                password_hash: hashedPassword,
-                role: 'ADMINISTRATEUR',
-                is_active: true
-            });
-            log('     ✅ Admin créé: admin@padel.com / Admin123!', 'success');
-        } else {
-            log('     ✅ Admin existe déjà: admin@padel.com / Admin123!', 'success');
-        }
+        const hashedPassword = await bcrypt.hash('Admin123!', 10);
+        await User.create({
+            email: 'admin@padel.com',
+            password_hash: hashedPassword,
+            role: 'ADMINISTRATEUR',
+            is_active: true
+        });
+        log('     ✅ Admin créé: admin@padel.com / Admin123!', 'success');
 
         // ═══════════════════════════════════════════════════════════════
         // STEP 2: CREATE COMPANIES

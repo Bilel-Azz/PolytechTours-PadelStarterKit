@@ -6,6 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "setup": "node scripts/setup.js",
+    "seed": "node scripts/seed_complete.js",
+    "init": "node scripts/setup.js && node scripts/seed_complete.js",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
     "test:unit": "jest __tests__/unit",
