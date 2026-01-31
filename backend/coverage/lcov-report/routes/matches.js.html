@@ -25,28 +25,28 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/64</span>
+                <span class='fraction'>0/68</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/22</span>
+                <span class='fraction'>0/28</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/6</span>
+                <span class='fraction'>0/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/63</span>
+                <span class='fraction'>0/65</span>
             </div>
         
             
@@ -333,23 +333,7 @@
 <a name='L268'></a><a href='#L268'>268</a>
 <a name='L269'></a><a href='#L269'>269</a>
 <a name='L270'></a><a href='#L270'>270</a>
-<a name='L271'></a><a href='#L271'>271</a>
-<a name='L272'></a><a href='#L272'>272</a>
-<a name='L273'></a><a href='#L273'>273</a>
-<a name='L274'></a><a href='#L274'>274</a>
-<a name='L275'></a><a href='#L275'>275</a>
-<a name='L276'></a><a href='#L276'>276</a>
-<a name='L277'></a><a href='#L277'>277</a>
-<a name='L278'></a><a href='#L278'>278</a>
-<a name='L279'></a><a href='#L279'>279</a>
-<a name='L280'></a><a href='#L280'>280</a>
-<a name='L281'></a><a href='#L281'>281</a>
-<a name='L282'></a><a href='#L282'>282</a>
-<a name='L283'></a><a href='#L283'>283</a>
-<a name='L284'></a><a href='#L284'>284</a>
-<a name='L285'></a><a href='#L285'>285</a>
-<a name='L286'></a><a href='#L286'>286</a>
-<a name='L287'></a><a href='#L287'>287</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L271'></a><a href='#L271'>271</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -452,30 +436,14 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -730,46 +698,30 @@ const { Op } = <span class="cstat-no" title="statement not covered" >require('se
             ],
         });
 &nbsp;
+        // Helper to format player safely
+        const formatPlayer = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(p</span>layer) =&gt; <span class="cstat-no" title="statement not covered" >player ? {</span></span>
+            id: player.id,
+            first_name: player.firstName,
+            last_name: player.lastName,
+        } : null;
+&nbsp;
+        // Helper to format team safely
+        const formatTeam = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(t</span>eam) =&gt; <span class="cstat-no" title="statement not covered" >team ? {</span></span>
+            id: team.id,
+            company: team.company,
+            players: [formatPlayer(team.player1), formatPlayer(team.player2)].filter(Boolean),
+        } : null;
+&nbsp;
         // Format response
         const matches = <span class="cstat-no" title="statement not covered" >rows.map(<span class="fstat-no" title="function not covered" >ma</span>tch =&gt; (<span class="cstat-no" title="statement not covered" >{</span></span>
             id: match.id,
-            event: {
+            event: match.event ? {
                 date: match.event.eventDate,
                 time: match.event.eventTime,
-            },
+            } : null,
             court_number: match.courtNumber,
-            team1: {
-                id: match.team1.id,
-                company: match.team1.company,
-                players: [
-                    {
-                        id: match.team1.player1.id,
-                        first_name: match.team1.player1.firstName,
-                        last_name: match.team1.player1.lastName,
-                    },
-                    {
-                        id: match.team1.player2.id,
-                        first_name: match.team1.player2.firstName,
-                        last_name: match.team1.player2.lastName,
-                    },
-                ],
-            },
-            team2: {
-                id: match.team2.id,
-                company: match.team2.company,
-                players: [
-                    {
-                        id: match.team2.player1.id,
-                        first_name: match.team2.player1.firstName,
-                        last_name: match.team2.player1.lastName,
-                    },
-                    {
-                        id: match.team2.player2.id,
-                        first_name: match.team2.player2.firstName,
-                        last_name: match.team2.player2.lastName,
-                    },
-                ],
-            },
+            team1: formatTeam(match.team1),
+            team2: formatTeam(match.team2),
             status: match.status,
             score_team1: match.scoreTeam1,
             score_team2: match.scoreTeam2,
@@ -928,7 +880,7 @@ const { Op } = <span class="cstat-no" title="statement not covered" >require('se
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-12-11T10:25:55.159Z
+                at 2026-01-12T16:19:07.033Z
             </div>
         <script src="../prettify.js"></script>
         <script>

@@ -13,12 +13,13 @@ import DialogTitle from '@/components/ui/dialog/DialogTitle.vue'
 import DialogDescription from '@/components/ui/dialog/DialogDescription.vue'
 import DialogFooter from '@/components/ui/dialog/DialogFooter.vue'
 import Badge from '@/components/ui/badge.vue'
-import { playersAPI } from '@/services/api'
+import { playersAPI, companiesAPI } from '@/services/api'
 import { useToast } from '@/composables/useToast'
 
 const { toast } = useToast()
 
 const players = ref([])
+const companies = ref([])
 const loading = ref(false)
 const showDialog = ref(false)
 const editingPlayer = ref(null)
@@ -45,6 +46,16 @@ const loadPlayers = async () => {
     toast.error('Erreur', 'Impossible de charger les joueurs')
   } finally {
     loading.value = false
+  }
+}
+
+// Charger les entreprises
+const loadCompanies = async () => {
+  try {
+    const response = await companiesAPI.getAll({ limit: 1000 })
+    companies.value = response.data.data || response.data
+  } catch (error) {
+    console.error('Erreur lors du chargement des entreprises:', error)
   }
 }
 
@@ -141,6 +152,7 @@ const deletePlayer = async (player) => {
 
 onMounted(() => {
   loadPlayers()
+  loadCompanies()
 })
 </script>
 
@@ -182,7 +194,20 @@ onMounted(() => {
 
             <div class="space-y-2">
               <Label for="company">Entreprise *</Label>
-              <Input id="company" v-model="formData.company" placeholder="Tech Corp" required />
+              <select
+                id="company"
+                v-model="formData.company"
+                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                required
+              >
+                <option value="" disabled>Selectionnez une entreprise</option>
+                <option v-for="company in companies" :key="company.id" :value="company.name">
+                  {{ company.name }}
+                </option>
+              </select>
+              <p v-if="companies.length === 0" class="text-xs text-muted-foreground">
+                Aucune entreprise disponible. <router-link to="/admin/companies" class="text-primary underline">Creer une entreprise</router-link>
+              </p>
             </div>
 
             <div class="space-y-2">

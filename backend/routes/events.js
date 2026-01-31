@@ -153,21 +153,24 @@ router.post(
                 { transaction: t }
             );
 
-            // Create all matches
-            const createdMatches = await Promise.all(
-                matches.map(match =>
-                    Match.create(
-                        {
-                            eventId: event.id,
-                            team1Id: match.team1Id,
-                            team2Id: match.team2Id,
-                            courtNumber: match.courtNumber,
-                            status: 'A_VENIR',
-                        },
-                        { transaction: t }
+            // Create matches if provided
+            let createdMatches = [];
+            if (matches && matches.length > 0) {
+                createdMatches = await Promise.all(
+                    matches.map(match =>
+                        Match.create(
+                            {
+                                eventId: event.id,
+                                team1Id: match.team1Id,
+                                team2Id: match.team2Id,
+                                courtNumber: match.courtNumber,
+                                status: 'A_VENIR',
+                            },
+                            { transaction: t }
+                        )
                     )
-                )
-            );
+                );
+            }
 
             return { event, matches: createdMatches };
         });

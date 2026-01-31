@@ -3,7 +3,7 @@
 // Script de seed complet pour tester l'application
 // ============================================
 
-const { sequelize, User, Player, Team, Pool, Event, Match } = require('../models');
+const { sequelize, User, Player, Team, Pool, Event, Match, Company } = require('../models');
 const bcrypt = require('bcryptjs');
 
 // Colors for console output
@@ -114,6 +114,13 @@ async function seedDatabase() {
         await sequelize.authenticate();
         log('Connexion à la base de données établie.', 'success');
 
+        // Sync database models first
+        separator();
+        log('🔧 Synchronisation des modèles...', 'info');
+        await sequelize.sync({ force: false, alter: true });
+        log('     ✅ Modèles synchronisés', 'success');
+        separator();
+
         // Reset database
         separator();
         log('🗑️  Nettoyage de la base de données...', 'warning');
@@ -124,6 +131,7 @@ async function seedDatabase() {
         await Team.destroy({ where: {}, force: true });
         await Pool.destroy({ where: {}, force: true });
         await Player.destroy({ where: {}, force: true });
+        await Company.destroy({ where: {}, force: true });
         await User.destroy({ where: { role: 'JOUEUR' }, force: true });
 
         log('     ✅ Base de données nettoyée', 'success');
@@ -150,17 +158,38 @@ async function seedDatabase() {
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // STEP 2: CREATE PLAYERS (4 per company = 48 players)
+        // STEP 2: CREATE COMPANIES
         // ═══════════════════════════════════════════════════════════════
         separator();
-        log('\n📋 ETAPE 2: Création des joueurs (48 joueurs)', 'header');
+        log('\n🏢 ETAPE 2: Création des entreprises (12 entreprises)', 'header');
+        separator();
+
+        const companiesMap = {};
+        for (const companyName of COMPANIES) {
+            const company = await Company.create({
+                name: companyName,
+                description: `Entreprise ${companyName} - Participant au tournoi Padel Corpo`,
+                isActive: true
+            });
+            companiesMap[companyName] = company.toJSON();
+            log(`     ✅ ${companyName}`, 'dim');
+        }
+
+        log(`\n  📊 Total entreprises créées: ${COMPANIES.length}`, 'success');
+
+        // ═══════════════════════════════════════════════════════════════
+        // STEP 3: CREATE PLAYERS (4 per company = 48 players)
+        // ═══════════════════════════════════════════════════════════════
+        separator();
+        log('\n📋 ETAPE 3: Création des joueurs (48 joueurs)', 'header');
         separator();
 
         const players = [];
         let playerIndex = 0;
 
-        for (const company of COMPANIES) {
-            log(`\n  🏢 ${company}`, 'subheader');
+        for (const companyName of COMPANIES) {
+            log(`\n  🏢 ${companyName}`, 'subheader');
+            const companyRecord = companiesMap[companyName];
 
             for (let i = 0; i < 4; i++) {
                 const firstName = FIRST_NAMES[playerIndex % FIRST_NAMES.length];
@@ -169,12 +198,13 @@ async function seedDatabase() {
                 const player = await Player.create({
                     firstName,
                     lastName,
-                    company,
+                    company: companyName,
+                    companyId: companyRecord.id,
                     licenseNumber: generateLicense(),
                     birthDate: randomDate(1975, 2000)
                 });
 
-                players.push({ ...player.toJSON(), companyName: company });
+                players.push({ ...player.toJSON(), companyName: companyName });
                 log(`     ✅ ${firstName} ${lastName} (${player.licenseNumber})`, 'dim');
                 playerIndex++;
             }
@@ -183,10 +213,10 @@ async function seedDatabase() {
         log(`\n  📊 Total joueurs créés: ${players.length}`, 'success');
 
         // ═══════════════════════════════════════════════════════════════
-        // STEP 3: CREATE USER ACCOUNTS FOR SOME PLAYERS
+        // STEP 4: CREATE USER ACCOUNTS FOR SOME PLAYERS
         // ═══════════════════════════════════════════════════════════════
         separator();
-        log('\n🔐 ETAPE 3: Création des comptes utilisateurs', 'header');
+        log('\n🔐 ETAPE 4: Création des comptes utilisateurs', 'header');
         separator();
 
         const userPlayers = players.slice(0, 12); // 12 first players get accounts
@@ -209,130 +239,102 @@ async function seedDatabase() {
         log('     Mot de passe: Player123!', 'dim');
 
         // ═══════════════════════════════════════════════════════════════
-        // STEP 4: CREATE TEAMS (2 per company = 24 teams)
+        // STEP 5: CREATE TEAMS (1 per company = 12 teams)
         // ═══════════════════════════════════════════════════════════════
         separator();
-        log('\n👥 ETAPE 4: Création des équipes (24 équipes)', 'header');
+        log('\n👥 ETAPE 5: Création des équipes (12 équipes)', 'header');
         separator();
 
         const teams = [];
-        const teamsByCompany = {};
 
-        for (const company of COMPANIES) {
-            log(`\n  🏢 ${company}`, 'subheader');
+        for (const companyName of COMPANIES) {
+            const companyPlayers = players.filter(p => p.companyName === companyName);
+            const companyRecord = companiesMap[companyName];
 
-            const companyPlayers = players.filter(p => p.companyName === company);
-            teamsByCompany[company] = [];
+            // 1 équipe par entreprise (2 premiers joueurs)
+            const p1 = companyPlayers[0];
+            const p2 = companyPlayers[1];
 
-            for (let i = 0; i < 2; i++) {
-                const p1 = companyPlayers[i * 2];
-                const p2 = companyPlayers[i * 2 + 1];
+            if (!p1 || !p2) continue;
 
-                if (!p1 || !p2) continue;
+            const team = await Team.create({
+                company: companyName,
+                companyId: companyRecord.id,
+                player1Id: p1.id,
+                player2Id: p2.id
+            });
 
-                const team = await Team.create({
-                    company,
-                    player1Id: p1.id,
-                    player2Id: p2.id
-                });
-
-                teams.push(team.toJSON());
-                teamsByCompany[company].push(team.toJSON());
-                log(`     ✅ ${p1.firstName} ${p1.lastName} & ${p2.firstName} ${p2.lastName}`, 'dim');
-            }
+            teams.push(team.toJSON());
+            log(`  ✅ ${companyName}: ${p1.firstName} ${p1.lastName} & ${p2.firstName} ${p2.lastName}`, 'dim');
         }
 
         log(`\n  📊 Total équipes créées: ${teams.length}`, 'success');
 
         // ═══════════════════════════════════════════════════════════════
-        // STEP 5: CREATE POOLS (4 pools of 6 teams)
+        // STEP 6: CREATE POOLS (2 pools of 6 teams)
         // ═══════════════════════════════════════════════════════════════
         separator();
-        log('\n🏆 ETAPE 5: Création des poules (4 poules)', 'header');
+        log('\n🏆 ETAPE 6: Création des poules (2 poules)', 'header');
         separator();
 
         const pools = [];
-        const poolNames = ['Poule A', 'Poule B', 'Poule C', 'Poule D'];
+        const poolNames = ['Poule A', 'Poule B'];
+        const poolTeamsMap = {};
 
-        // Reorganize teams: first team from each company, then second team
-        // This ensures each pool has teams from different companies
-        const firstTeams = []; // First team from each company
-        const secondTeams = []; // Second team from each company
+        // Poule A: 6 premières équipes, Poule B: 6 dernières
+        for (let p = 0; p < 2; p++) {
+            const poolTeams = teams.slice(p * 6, (p + 1) * 6);
 
-        for (const company of COMPANIES) {
-            const companyTeams = teams.filter(t => t.company === company);
-            if (companyTeams[0]) firstTeams.push(companyTeams[0]);
-            if (companyTeams[1]) secondTeams.push(companyTeams[1]);
-        }
+            const pool = await Pool.create({
+                name: `${poolNames[p]} - Saison 2025`
+            });
 
-        // Mix teams so different companies are in same pool
-        // Pool A: companies 0,1,2 first teams + companies 0,1,2 second teams (but interleaved)
-        // Better: take 6 different companies per pool
-        const allTeams = [];
-        // Pool A: first teams from companies 0-5
-        allTeams.push(...firstTeams.slice(0, 6));
-        // Pool B: first teams from companies 6-11
-        allTeams.push(...firstTeams.slice(6, 12));
-        // Pool C: second teams from companies 0-5
-        allTeams.push(...secondTeams.slice(0, 6));
-        // Pool D: second teams from companies 6-11
-        allTeams.push(...secondTeams.slice(6, 12));
-
-        for (let p = 0; p < 4; p++) {
-            const poolTeams = allTeams.slice(p * 6, (p + 1) * 6);
-
-            if (poolTeams.length === 6) {
-                const pool = await Pool.create({
-                    name: `${poolNames[p]} - Saison 2025`
-                });
-
-                // Assign teams to pool
-                for (const team of poolTeams) {
-                    await Team.update({ poolId: pool.id }, { where: { id: team.id } });
-                }
-
-                pools.push(pool.toJSON());
-                log(`\n  🏆 ${poolNames[p]} - Saison 2025`, 'subheader');
-                poolTeams.forEach(t => log(`     - ${t.company}`, 'dim'));
+            // Assign teams to pool
+            for (const team of poolTeams) {
+                await Team.update({ poolId: pool.id }, { where: { id: team.id } });
             }
+
+            pools.push(pool.toJSON());
+            poolTeamsMap[pool.id] = poolTeams;
+            log(`\n  🏆 ${poolNames[p]} - Saison 2025`, 'subheader');
+            poolTeams.forEach(t => log(`     - ${t.company}`, 'dim'));
         }
 
         log(`\n  📊 Total poules créées: ${pools.length}`, 'success');
 
         // ═══════════════════════════════════════════════════════════════
-        // STEP 6: CREATE EVENTS AND MATCHES
+        // STEP 7: CREATE EVENTS AND MATCHES
         // ═══════════════════════════════════════════════════════════════
         separator();
-        log('\n📅 ETAPE 6: Création des événements et matchs', 'header');
+        log('\n📅 ETAPE 7: Création des événements et matchs', 'header');
         separator();
 
         const events = [];
         const today = new Date();
 
-        // Round-robin schedule for 6 teams (each team plays every other team once)
-        // Format: [team1Index, team2Index] for each match
+        // Round-robin schedule for 6 teams (each team plays every other team once = 5 journées)
+        // Format: [team1Index, team2Index] for each match in each pool
         const roundRobinSchedule = [
             // Journée 1
-            [[0, 1], [2, 3], [4, 5]],
+            [[0, 5], [1, 4], [2, 3]],
             // Journée 2
-            [[0, 2], [1, 4], [3, 5]],
+            [[0, 4], [5, 3], [1, 2]],
             // Journée 3
-            [[0, 3], [1, 5], [2, 4]],
+            [[0, 3], [4, 2], [5, 1]],
             // Journée 4
-            [[0, 4], [1, 3], [2, 5]],
+            [[0, 2], [3, 1], [4, 5]],
             // Journée 5
-            [[0, 5], [1, 2], [3, 4]],
-            // Journée 6 (repeat J1 for more data)
             [[0, 1], [2, 5], [3, 4]],
         ];
 
-        // Use teams from first pool (first 6 teams)
-        const poolTeams = allTeams.slice(0, 6);
+        // Teams par poule
+        const pouleATeams = teams.slice(0, 6);
+        const pouleBTeams = teams.slice(6, 12);
 
-        // Create 6 journées (past, present, future)
-        for (let j = 0; j < 6; j++) {
+        // Create 5 journées (2 passées, 1 aujourd'hui, 2 à venir)
+        for (let j = 0; j < 5; j++) {
             const eventDate = new Date(today);
-            eventDate.setDate(today.getDate() + (j - 2) * 7); // -2 weeks to +3 weeks
+            eventDate.setDate(today.getDate() + (j - 2) * 7); // -2 weeks to +2 weeks
 
             const event = await Event.create({
                 eventDate: eventDate.toISOString().split('T')[0],
@@ -342,19 +344,21 @@ async function seedDatabase() {
             events.push(event.toJSON());
 
             const isPast = eventDate < today;
-            const status = isPast ? 'Terminée' : (j === 2 ? 'Aujourd\'hui' : 'À venir');
+            const isToday = eventDate.toDateString() === today.toDateString();
+            const status = isPast ? 'Terminée' : (isToday ? 'Aujourd\'hui' : 'À venir');
             log(`\n  📅 Journée ${j + 1} (${eventDate.toLocaleDateString('fr-FR')}) - ${status}`, 'subheader');
 
-            // Create matches for this journée
+            // Create matches for this journée - both pools play
             const journeeMatches = roundRobinSchedule[j];
             let courtNum = 1;
 
+            // Poule A matches
+            log('     Poule A:', 'dim');
             for (const [t1Idx, t2Idx] of journeeMatches) {
-                const team1 = poolTeams[t1Idx];
-                const team2 = poolTeams[t2Idx];
+                const team1 = pouleATeams[t1Idx];
+                const team2 = pouleATeams[t2Idx];
 
                 if (team1 && team2) {
-                    // Prepare match data - set scores directly at creation for past matches
                     const matchData = {
                         eventId: event.id,
                         team1Id: team1.id,
@@ -363,7 +367,6 @@ async function seedDatabase() {
                         status: isPast ? 'TERMINE' : 'A_VENIR'
                     };
 
-                    // Add scores for past matches directly at creation
                     if (isPast) {
                         const score = randomScore();
                         const winner = Math.random() > 0.5 ? 1 : 2;
@@ -372,7 +375,35 @@ async function seedDatabase() {
                     }
 
                     await Match.create(matchData);
-                    log(`     Piste ${courtNum}: ${team1.company} vs ${team2.company}`, 'dim');
+                    log(`       Piste ${courtNum}: ${team1.company} vs ${team2.company}`, 'dim');
+                    courtNum++;
+                }
+            }
+
+            // Poule B matches
+            log('     Poule B:', 'dim');
+            for (const [t1Idx, t2Idx] of journeeMatches) {
+                const team1 = pouleBTeams[t1Idx];
+                const team2 = pouleBTeams[t2Idx];
+
+                if (team1 && team2) {
+                    const matchData = {
+                        eventId: event.id,
+                        team1Id: team1.id,
+                        team2Id: team2.id,
+                        courtNumber: courtNum,
+                        status: isPast ? 'TERMINE' : 'A_VENIR'
+                    };
+
+                    if (isPast) {
+                        const score = randomScore();
+                        const winner = Math.random() > 0.5 ? 1 : 2;
+                        matchData.scoreTeam1 = winner === 1 ? score.team1 : score.team2;
+                        matchData.scoreTeam2 = winner === 1 ? score.team2 : score.team1;
+                    }
+
+                    await Match.create(matchData);
+                    log(`       Piste ${courtNum}: ${team1.company} vs ${team2.company}`, 'dim');
                     courtNum++;
                 }
             }
@@ -398,6 +429,7 @@ async function seedDatabase() {
   ┌─────────────────────────────────────────────────────────┐
   │                    DONNEES CREEES                       │
   ├─────────────────────────────────────────────────────────┤
+  │  🏢 Entreprises:        ${String(COMPANIES.length).padStart(3)}                            │
   │  👤 Joueurs:            ${String(players.length).padStart(3)}                            │
   │  🔐 Comptes joueurs:    ${String(userPlayers.length).padStart(3)}                            │
   │  👥 Équipes:            ${String(teams.length).padStart(3)}                            │

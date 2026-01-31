@@ -4,6 +4,7 @@ const sequelize = require('../config/database');
 // Import models
 const User = require('./User')(sequelize, Sequelize.DataTypes);
 const LoginAttempt = require('./LoginAttempt')(sequelize, Sequelize.DataTypes);
+const Company = require('./Company')(sequelize, Sequelize.DataTypes);
 const Player = require('./Player')(sequelize, Sequelize.DataTypes);
 const Team = require('./Team')(sequelize, Sequelize.DataTypes);
 const Pool = require('./Pool')(sequelize, Sequelize.DataTypes);
@@ -15,6 +16,7 @@ const db = {
     Sequelize,
     User,
     LoginAttempt,
+    Company,
     Player,
     Team,
     Pool,

@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { RouterView, RouterLink, useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import {
@@ -9,16 +9,12 @@ import Button from '../components/ui/button.vue'
 import Avatar from '../components/ui/avatar.vue'
 import Badge from '../components/ui/badge.vue'
 import ThemeToggle from '../components/ThemeToggle.vue'
-import DropdownMenu from '../components/ui/dropdown-menu.vue'
-import DropdownMenuTrigger from '../components/ui/dropdown-menu/DropdownMenuTrigger.vue'
-import DropdownMenuContent from '../components/ui/dropdown-menu/DropdownMenuContent.vue'
-import DropdownMenuItem from '../components/ui/dropdown-menu/DropdownMenuItem.vue'
-import DropdownMenuSeparator from '../components/ui/dropdown-menu/DropdownMenuSeparator.vue'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const mobileMenuOpen = ref(false)
+const userMenuOpen = ref(false)
 
 const navigation = [
   { name: 'Accueil', path: '/user/dashboard', icon: Home },
@@ -45,6 +41,22 @@ const getInitials = (email) => {
   if (!email) return '?'
   return email.substring(0, 2).toUpperCase()
 }
+
+// Handle click outside for dropdown
+const dropdownRef = ref(null)
+const handleClickOutside = (event) => {
+  if (dropdownRef.value && !dropdownRef.value.contains(event.target) && userMenuOpen.value) {
+    userMenuOpen.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 </script>
 
 <template>
@@ -81,43 +93,62 @@ const getInitials = (email) => {
           <ThemeToggle />
 
           <!-- User Menu Desktop -->
-          <div class="hidden md:block">
-            <DropdownMenu>
-              <DropdownMenuTrigger data-testid="user-menu-trigger">
-                <Button variant="ghost" class="gap-2 pl-2 pr-3">
-                  <Avatar class="h-8 w-8 bg-primary/10">
-                    <span class="text-xs font-medium">{{ getInitials(authStore.user?.email) }}</span>
-                  </Avatar>
-                  <span class="text-sm font-medium max-w-[150px] truncate">
-                    {{ authStore.user?.email }}
-                  </span>
-                  <ChevronDown class="h-4 w-4 text-muted-foreground" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" class="w-56">
-                <div class="px-2 py-1.5">
-                  <p class="text-sm font-medium">{{ authStore.user?.email }}</p>
-                  <p class="text-xs text-muted-foreground">
-                    {{ authStore.user?.role === 'ADMINISTRATEUR' ? 'Administrateur' : 'Joueur' }}
-                  </p>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem @click="goToProfile">
-                  <User class="h-4 w-4 mr-2" />
-                  Mon Profil
-                </DropdownMenuItem>
-                <DropdownMenuItem v-if="authStore.isAdmin" @click="router.push('/admin')" data-testid="admin-menu-item">
-                  <BarChart3 class="h-4 w-4 mr-2" />
-                  Administration
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem @click="handleLogout" class="text-destructive focus:text-destructive" data-testid="logout-menu-item">
-                  <LogOut class="h-4 w-4 mr-2" />
-                  Déconnexion
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div class="hidden md:block relative" ref="dropdownRef">
+            <Button 
+              variant="ghost" 
+              class="gap-2 pl-2 pr-3"
+              @click="userMenuOpen = !userMenuOpen"
+              data-testid="user-menu-trigger"
+            >
+              <Avatar class="h-8 w-8 bg-primary/10">
+                <span class="text-xs font-medium">{{ getInitials(authStore.user?.email) }}</span>
+              </Avatar>
+              <span class="text-sm font-medium max-w-[150px] truncate">
+                {{ authStore.user?.email }}
+              </span>
+              <ChevronDown class="h-4 w-4 text-muted-foreground" />
+            </Button>
+            
+            <!-- Dropdown Content -->
+            <div
+              v-if="userMenuOpen"
+              class="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-popover border z-50 animate-in fade-in-0 zoom-in-95 slide-in-from-top-2"
+            >
+              <div class="px-2 py-1.5">
+                <p class="text-sm font-medium">{{ authStore.user?.email }}</p>
+                <p class="text-xs text-muted-foreground">
+                  {{ authStore.user?.role === 'ADMINISTRATEUR' ? 'Administrateur' : 'Joueur' }}
+                </p>
+              </div>
+              <div class="border-t my-1"></div>
+              <button
+                @click="goToProfile(); userMenuOpen = false"
+                class="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors rounded-sm"
+              >
+                <User class="h-4 w-4" />
+                Mon Profil
+              </button>
+              <button
+                v-if="authStore.isAdmin"
+                @click="router.push('/admin'); userMenuOpen = false"
+                class="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors rounded-sm"
+                data-testid="admin-menu-item"
+              >
+                <BarChart3 class="h-4 w-4" />
+                Administration
+              </button>
+              <div class="border-t my-1"></div>
+              <button
+                @click="handleLogout"
+                class="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors rounded-sm"
+                data-testid="logout-menu-item"
+              >
+                <LogOut class="h-4 w-4" />
+                Déconnexion
+              </button>
+            </div>
           </div>
+
 
           <!-- Mobile Menu Button -->
           <Button

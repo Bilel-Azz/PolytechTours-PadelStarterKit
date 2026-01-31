@@ -12,11 +12,10 @@ const isTodayOrFuture = (dateStr) => {
     return inputDate >= today;
 };
 
-// Create event schema with matches (1-3 matches)
+// Create event schema (matches optional)
 const createEventSchema = z.object({
     eventDate: z.string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date invalide (format: YYYY-MM-DD)')
-        .refine(isTodayOrFuture, 'La date de l\'événement doit être aujourd\'hui ou dans le futur'),
+        .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date invalide (format: YYYY-MM-DD)'),
     eventTime: z.string()
         .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Heure invalide (format: HH:MM)'),
     matches: z.array(z.object({
@@ -24,24 +23,8 @@ const createEventSchema = z.object({
         team2Id: z.number(),
         courtNumber: z.number().int().min(1).max(10),
     }))
-        .min(1, 'Au moins 1 match requis')
-        .max(3, 'Maximum 3 matchs par événement')
-        .refine(
-            (matches) => {
-                // Check no duplicate courts
-                const courts = matches.map(m => m.courtNumber);
-                return courts.length === new Set(courts).size;
-            },
-            'Pas de piste en double pour le même événement'
-        )
-        .refine(
-            (matches) => {
-                // Check each team plays only once
-                const teams = matches.flatMap(m => [m.team1Id, m.team2Id]);
-                return teams.length === new Set(teams).size;
-            },
-            'Une équipe ne peut jouer qu\'un match par événement'
-        ),
+        .max(10, 'Maximum 10 matchs par événement')
+        .optional(),
 });
 
 // Update event schema

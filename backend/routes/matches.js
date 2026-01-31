@@ -93,46 +93,30 @@ router.get(
             ],
         });
 
+        // Helper to format player safely
+        const formatPlayer = (player) => player ? {
+            id: player.id,
+            first_name: player.firstName,
+            last_name: player.lastName,
+        } : null;
+
+        // Helper to format team safely
+        const formatTeam = (team) => team ? {
+            id: team.id,
+            company: team.company,
+            players: [formatPlayer(team.player1), formatPlayer(team.player2)].filter(Boolean),
+        } : null;
+
         // Format response
         const matches = rows.map(match => ({
             id: match.id,
-            event: {
+            event: match.event ? {
                 date: match.event.eventDate,
                 time: match.event.eventTime,
-            },
+            } : null,
             court_number: match.courtNumber,
-            team1: {
-                id: match.team1.id,
-                company: match.team1.company,
-                players: [
-                    {
-                        id: match.team1.player1.id,
-                        first_name: match.team1.player1.firstName,
-                        last_name: match.team1.player1.lastName,
-                    },
-                    {
-                        id: match.team1.player2.id,
-                        first_name: match.team1.player2.firstName,
-                        last_name: match.team1.player2.lastName,
-                    },
-                ],
-            },
-            team2: {
-                id: match.team2.id,
-                company: match.team2.company,
-                players: [
-                    {
-                        id: match.team2.player1.id,
-                        first_name: match.team2.player1.firstName,
-                        last_name: match.team2.player1.lastName,
-                    },
-                    {
-                        id: match.team2.player2.id,
-                        first_name: match.team2.player2.firstName,
-                        last_name: match.team2.player2.lastName,
-                    },
-                ],
-            },
+            team1: formatTeam(match.team1),
+            team2: formatTeam(match.team2),
             status: match.status,
             score_team1: match.scoreTeam1,
             score_team2: match.scoreTeam2,

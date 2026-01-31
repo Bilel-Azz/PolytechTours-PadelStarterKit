@@ -21,7 +21,17 @@ module.exports = (sequelize, DataTypes) => {
         },
         company: {
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: true, // Deprecated: use companyId instead
+        },
+        companyId: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            field: 'company_id',
+            references: {
+                model: 'companies',
+                key: 'id',
+            },
+            onDelete: 'SET NULL',
         },
         licenseNumber: {
             type: DataTypes.STRING,
@@ -67,6 +77,12 @@ module.exports = (sequelize, DataTypes) => {
         Player.belongsTo(models.User, {
             foreignKey: 'user_id',
             as: 'user',
+        });
+
+        // Belongs to Company
+        Player.belongsTo(models.Company, {
+            foreignKey: 'company_id',
+            as: 'companyRef',
         });
 
         // Has many Teams as player1

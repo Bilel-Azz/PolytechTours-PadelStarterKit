@@ -11,7 +11,17 @@ module.exports = (sequelize, DataTypes) => {
         },
         company: {
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: true, // Deprecated: use companyId instead
+        },
+        companyId: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            field: 'company_id',
+            references: {
+                model: 'companies',
+                key: 'id',
+            },
+            onDelete: 'SET NULL',
         },
         player1Id: {
             type: DataTypes.INTEGER,
@@ -78,6 +88,12 @@ module.exports = (sequelize, DataTypes) => {
         Team.belongsTo(models.Pool, {
             foreignKey: 'pool_id',
             as: 'pool',
+        });
+
+        // Belongs to Company
+        Team.belongsTo(models.Company, {
+            foreignKey: 'company_id',
+            as: 'companyRef',
         });
 
         // Has many matches as team1

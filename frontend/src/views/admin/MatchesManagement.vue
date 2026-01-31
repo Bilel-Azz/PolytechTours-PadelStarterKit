@@ -174,9 +174,9 @@ const deleteMatch = async (match) => {
   }
 }
 
-const getTeamName = (teamId) => {
-  const team = teams.value.find(t => t.id === teamId)
-  return team ? team.company : 'Équipe supprimée'
+const getTeamName = (team) => {
+  if (!team) return 'Équipe supprimée'
+  return team.company || 'Équipe supprimée'
 }
 
 onMounted(loadData)
@@ -276,9 +276,9 @@ onMounted(loadData)
                 <span class="text-sm text-muted-foreground">Court {{ match.courtNumber }}</span>
               </div>
               <div class="flex items-center gap-2">
-                <span class="font-medium">{{ getTeamName(match.team1Id) }}</span>
+                <span class="font-medium">{{ getTeamName(match.team1) }}</span>
                 <span class="text-muted-foreground">vs</span>
-                <span class="font-medium">{{ getTeamName(match.team2Id) }}</span>
+                <span class="font-medium">{{ getTeamName(match.team2) }}</span>
               </div>
               <div v-if="match.scoreTeam1 || match.scoreTeam2" class="text-sm text-muted-foreground mt-1">
                 Score: {{ match.scoreTeam1 || '-' }} / {{ match.scoreTeam2 || '-' }}

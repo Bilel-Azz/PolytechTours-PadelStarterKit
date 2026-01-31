@@ -16,6 +16,7 @@ import PoolsManagement from '../views/admin/PoolsManagement.vue'
 import MatchesManagement from '../views/admin/MatchesManagement.vue'
 import EventsManagement from '../views/admin/EventsManagement.vue'
 import UsersManagement from '../views/admin/UsersManagement.vue'
+import CompaniesManagement from '../views/admin/CompaniesManagement.vue'
 
 // Pages utilisateur
 import UserDashboard from '../views/UserDashboard.vue'
@@ -137,6 +138,11 @@ const routes = [
         path: 'users',
         name: 'admin-users',
         component: UsersManagement
+      },
+      {
+        path: 'companies',
+        name: 'admin-companies',
+        component: CompaniesManagement
       }
     ]
   },

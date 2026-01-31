@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Home, Users, UserCheck, Shield, Calendar, ArrowLeft, ChevronLeft, Menu, X, LogOut, Trophy, CalendarDays, UserCog } from 'lucide-vue-next'
+import { Home, Users, UserCheck, Shield, Calendar, ArrowLeft, ChevronLeft, Menu, X, LogOut, Trophy, CalendarDays, UserCog, Building2 } from 'lucide-vue-next'
 import Button from '@/components/ui/button.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -15,6 +15,7 @@ const menuItems = [
   { icon: Home, label: 'Vue d\'ensemble', path: '/admin' },
   { icon: CalendarDays, label: 'Événements', path: '/admin/events' },
   { icon: Trophy, label: 'Matchs', path: '/admin/matches' },
+  { icon: Building2, label: 'Entreprises', path: '/admin/companies' },
   { icon: Users, label: 'Joueurs', path: '/admin/players' },
   { icon: UserCheck, label: 'Équipes', path: '/admin/teams' },
   { icon: Shield, label: 'Poules', path: '/admin/pools' },

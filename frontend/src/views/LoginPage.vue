@@ -28,7 +28,11 @@ const handleLogin = async () => {
   const result = await authStore.login(email.value, password.value)
 
   if (result.success) {
-    await router.push('/user/dashboard')
+    if (authStore.isAdmin) {
+      await router.push('/admin')
+    } else {
+      await router.push('/user/dashboard')
+    }
   } else {
     errorMessage.value = result.error || 'Erreur de connexion'
     attemptsRemaining.value = result.attemptsRemaining ?? null

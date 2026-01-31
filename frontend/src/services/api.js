@@ -180,6 +180,33 @@ export const profileAPI = {
     api.put('/profile', profileData)
 }
 
+// API des entreprises
+export const companiesAPI = {
+  getAll: (params = {}) =>
+    api.get('/companies', { params }),
+
+  getById: (id) =>
+    api.get(`/companies/${id}`),
+
+  create: (companyData) =>
+    api.post('/companies', companyData),
+
+  update: (id, companyData) =>
+    api.put(`/companies/${id}`, companyData),
+
+  delete: (id) =>
+    api.delete(`/companies/${id}`),
+
+  getPlayers: (id) =>
+    api.get(`/companies/${id}/players`),
+
+  attachPlayer: (companyId, playerId) =>
+    api.post(`/companies/${companyId}/players/${playerId}`),
+
+  detachPlayer: (companyId, playerId) =>
+    api.delete(`/companies/${companyId}/players/${playerId}`)
+}
+
 // API Admin - Gestion des utilisateurs
 export const adminAPI = {
   // Users

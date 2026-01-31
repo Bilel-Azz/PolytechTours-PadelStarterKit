@@ -11,6 +11,7 @@ const matchesRoutes = require('./routes/matches');
 const resultsRoutes = require('./routes/results');
 const profileRoutes = require('./routes/profile');
 const adminRoutes = require('./routes/admin');
+const companiesRoutes = require('./routes/companies');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 dotenv.config();
@@ -48,6 +49,7 @@ app.use('/api/v1/matches', matchesRoutes);
 app.use('/api/v1/results', resultsRoutes);
 app.use('/api/v1/profile', profileRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/companies', companiesRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: "Bienvenue sur l'API Corpo Padel", version: "1.0.0" });
@@ -68,8 +70,8 @@ app.listen(PORT, async () => {
     await sequelize.authenticate();
     console.log('Database connection has been established successfully.');
 
-    // Sync database models (use { force: false } in production)
-    await sequelize.sync({ alter: true });
+    // Sync database models (force: false to keep existing data)
+    await sequelize.sync({ force: false });
     console.log('Database models synchronized.');
   } catch (error) {
     console.error('Unable to connect to the database:', error);
